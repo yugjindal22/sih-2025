@@ -4,11 +4,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import AnalysisDashboard from "@/features/analysis-dashboard/components/AnalysisDashboard";
+import AnalysisDashboard, { type AnalysisData } from "@/features/analysis-dashboard/components/AnalysisDashboard";
 
 export default function AnalysisDashboardPage() {
     // Mock analysis data for demonstration
-    const mockAnalysisData = {
+    const mockAnalysisData: AnalysisData = {
         summary: "Earth Observation analysis results",
         confidence: 85,
         landCover: {
@@ -17,6 +17,7 @@ export default function AnalysisDashboardPage() {
             urban: 25,
             bareSoil: 15,
             forest: 10,
+            agriculture: 0,
         },
         vegetation: {
             health: "Good",

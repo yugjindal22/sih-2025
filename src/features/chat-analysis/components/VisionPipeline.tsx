@@ -1,5 +1,3 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
@@ -162,12 +160,13 @@ const VisionPipeline = ({
                 return (
                   <div
                     key={index}
-                    className={`flex items-start gap-3 p-2 rounded-lg border transition-all ${isCompleted
+                    className={`flex items-start gap-3 p-2 rounded-lg border transition-all ${
+                      isCompleted
                         ? "bg-green-500/10 border-green-500/30"
                         : isCurrent
-                          ? "bg-primary/10 border-primary/30 animate-glow-pulse"
-                          : "bg-muted/20 border-border/30 opacity-50"
-                      } ${!isUpcoming ? "animate-fade-in" : ""}`}
+                        ? "bg-primary/10 border-primary/30 animate-glow-pulse"
+                        : "bg-muted/20 border-border/30 opacity-50"
+                    } ${!isUpcoming ? "animate-fade-in" : ""}`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="mt-0.5">

@@ -7,15 +7,25 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
     const [adapter, setAdapter] = useState("gemini");
     const [apiKey, setApiKey] = useState("");
 
+    useEffect(() => {
+        const savedKey = localStorage.getItem("gemini_api_key");
+        if (savedKey) setApiKey(savedKey);
+    }, []);
+
     const handleSave = () => {
-        toast.success("Settings saved successfully");
+        if (apiKey) {
+            localStorage.setItem("gemini_api_key", apiKey);
+            toast.success("Settings saved successfully");
+        } else {
+            toast.error("Please enter a valid API key");
+        }
     };
 
     return (

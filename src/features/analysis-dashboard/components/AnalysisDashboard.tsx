@@ -487,13 +487,12 @@ const AnalysisDashboard = ({
                       >
                         {feature.severity && (
                           <AlertTriangle
-                            className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                              feature.severity === "High"
+                            className={`w-4 h-4 mt-0.5 flex-shrink-0 ${feature.severity === "High"
                                 ? "text-red-500"
                                 : feature.severity === "Medium"
-                                ? "text-yellow-500"
-                                : "text-blue-500"
-                            }`}
+                                  ? "text-yellow-500"
+                                  : "text-blue-500"
+                              }`}
                           />
                         )}
                         <div className="flex-1 min-w-0">
@@ -565,7 +564,7 @@ const AnalysisDashboard = ({
                         const type = Object.entries(data.landCover).find(
                           ([_, v]) => v === max
                         )?.[0];
-                        return type?.charAt(0).toUpperCase() + type?.slice(1);
+                        return type ? type.charAt(0).toUpperCase() + type.slice(1) : "N/A";
                       })()}
                     </span>
                   </div>

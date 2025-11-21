@@ -14,6 +14,8 @@ import {
   ArrowLeftRight,
   Eye,
   Square,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import ArchitectureViz from "./ArchitectureViz";
@@ -57,8 +59,6 @@ interface ChatProps {
   onBack: () => void;
 }
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-
 const Chat = ({ onBack }: ChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -68,6 +68,14 @@ const Chat = ({ onBack }: ChatProps) => {
   const [showLogs, setShowLogs] = useState(false);
   const [metadata, setMetadata] = useState<SatelliteMetadata | null>(null);
   const [showAttentionHeatmap, setShowAttentionHeatmap] = useState(false);
+  const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem("gemini_api_key");
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
+  }, []);
   const [currentReasoningSteps, setCurrentReasoningSteps] = useState<any[]>([]);
   const [currentMetrics, setCurrentMetrics] = useState<any>(null);
   const [currentAnalysisData, setCurrentAnalysisData] =
@@ -103,6 +111,7 @@ const Chat = ({ onBack }: ChatProps) => {
         toast.error("Please upload an image file");
         return;
       }
+
       const reader = new FileReader();
       reader.onload = (event) => {
         setUploadedImage(event.target?.result as string);
@@ -151,12 +160,12 @@ const Chat = ({ onBack }: ChatProps) => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      
+
       img.onload = () => {
         // Create canvas for cropping
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        
+
         if (!ctx) {
           reject(new Error("Could not get canvas context"));
           return;
@@ -210,7 +219,7 @@ const Chat = ({ onBack }: ChatProps) => {
     try {
       // Crop the image to the selected ROI
       const croppedImage = await cropImageToROI(imageToAnalyze, roi);
-      
+
       toast.success("Analyzing selected region...");
       setRoiMode(false);
 
@@ -412,7 +421,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -430,7 +439,14 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
       );
 
       if (!response.ok) {
-        throw new Error("Failed to get response from Gemini API");
+        const errorText = await response.text();
+        console.error("API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "NOT SET"
+        });
+        throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
       }
 
       const data = await response.json();
@@ -483,7 +499,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
           role: "assistant",
           content: displayText,
           reasoningSteps: reasoningSteps,
-          analysisData: analysisData,
+          analysisData: analysisData || undefined,
         },
       ]);
     } catch (error: any) {
@@ -650,7 +666,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -668,7 +684,14 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
       );
 
       if (!response.ok) {
-        throw new Error("Failed to get response from the analysis service");
+        const errorText = await response.text();
+        console.error("API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "NOT SET"
+        });
+        throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
       }
 
       const data = await response.json();
@@ -696,7 +719,9 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
         }
 
         analysisData = JSON.parse(jsonText);
-        displayText = analysisData.summary;
+        if (analysisData) {
+          displayText = analysisData.summary;
+        }
       } catch (e) {
         console.error(
           "Failed to parse JSON response, attempting text parsing:",
@@ -785,26 +810,22 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
           }}
         />
       ) : (
-        <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black overflow-hidden">
-          {/* Grid Pattern Overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
-          
-          {/* Gradient Overlays for Color */}
+        <div className="relative min-h-[calc(100vh-4rem)] bg-background overflow-hidden flex flex-col">
+          {/* Grid Pattern Overlay - Theme Aware */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.1)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
+
+          {/* Gradient Overlays for Color - Theme Aware */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[120px] animate-pulse" />
             <div
-              className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] animate-pulse"
+              className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-accent/5 dark:bg-accent/10 rounded-full blur-[120px] animate-pulse"
               style={{ animationDelay: "1s" }}
-            />
-            <div
-              className="absolute top-1/2 left-1/3 w-[400px] h-[400px] bg-secondary/8 rounded-full blur-[100px] animate-pulse"
-              style={{ animationDelay: "2s" }}
             />
           </div>
 
-          <div className="relative z-10 h-full flex flex-col max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
+          <div className="relative z-10 flex-1 flex flex-col max-w-[1800px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 flex-shrink-0">
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
                   VisionGPT-OSS
@@ -820,8 +841,8 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                   onClick={() => setRoiMode(!roiMode)}
                   className={
                     roiMode
-                      ? "bg-primary/20 border-primary/40 text-primary-foreground hover:bg-primary/30"
-                      : "border-primary/20 hover:bg-primary/10 hover:border-primary/30"
+                      ? "bg-primary/20 border-primary/40 text-primary hover:bg-primary/30"
+                      : "border-border hover:bg-muted"
                   }
                 >
                   <Crosshair className="w-4 h-4 mr-2" />
@@ -834,16 +855,16 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                   disabled={!uploadedImage && compareImages.length === 0}
                   className={
                     compareImages.length > 0
-                      ? "bg-accent/20 border-accent/40 text-accent-foreground hover:bg-accent/30"
-                      : "border-accent/20 hover:bg-accent/10 hover:border-accent/30"
+                      ? "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30"
+                      : "border-border hover:bg-muted"
                   }
                 >
                   <ArrowLeftRight className="w-4 h-4 mr-2" />
                   {compareImages.length === 0
                     ? "Compare"
                     : compareImages.length === 1
-                    ? "Add 2nd Image"
-                    : "View Compare"}
+                      ? "Add 2nd Image"
+                      : "View Compare"}
                 </Button>
                 <Button
                   variant="outline"
@@ -858,10 +879,10 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
 
             {/* Compare Images Staging Area */}
             {compareImages.length > 0 && (
-              <Card className="mb-3 p-3 bg-accent/5 border-accent/30 animate-fade-in backdrop-blur-sm flex-shrink-0 shadow-lg shadow-accent/10">
+              <Card className="mb-4 p-4 bg-accent/5 border-accent/20 animate-fade-in backdrop-blur-sm flex-shrink-0 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold mb-2 text-white">
+                    <h3 className="text-sm font-semibold mb-2 text-foreground">
                       Compare Mode Staging
                     </h3>
                     <div className="flex gap-4">
@@ -875,7 +896,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                       ))}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-muted-foreground">
                     {compareImages.length === 1
                       ? "Upload 2nd image →"
                       : "Ready to compare!"}
@@ -884,7 +905,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                     size="sm"
                     variant="ghost"
                     onClick={() => setCompareImages([])}
-                    className="text-gray-400 hover:text-white hover:bg-white/10"
+                    className="text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -892,28 +913,30 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
               </Card>
             )}
 
-            <div className="grid lg:grid-cols-12 gap-3 sm:gap-4 flex-1 min-h-0 overflow-hidden">
+            <div className="grid lg:grid-cols-12 gap-4 flex-1 min-h-0">
               {/* Left: Architecture & Metadata */}
-              <div className="hidden lg:flex lg:col-span-2 flex-col gap-3 overflow-y-auto pr-1">
+              <div className="hidden lg:flex lg:col-span-2 flex-col gap-4 overflow-y-auto pr-1">
                 <ArchitectureViz isProcessing={isProcessing} />
                 {metadata && <MetadataPanel metadata={metadata} />}
               </div>
 
-              {/* Center: Chat - Reduced from 6 to 5 columns */}
-              <div className="lg:col-span-5 col-span-12 flex flex-col min-h-0 gap-3">
-                <Card className="flex-1 bg-white/5 backdrop-blur-md border-white/10 overflow-hidden flex flex-col min-h-0 shadow-lg">
+              {/* Center: Chat */}
+              <div className="lg:col-span-5 col-span-12 flex flex-col min-h-[600px] lg:min-h-0 gap-4">
+                <Card className="flex-1 bg-card/50 backdrop-blur-sm border-border overflow-hidden flex flex-col shadow-sm">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 min-h-0">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                     {messages.length === 0 && (
-                      <div className="text-center text-gray-400 py-8">
-                        <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-base text-white">
-                          Upload an Earth Observation image to begin
+                      <div className="text-center text-muted-foreground py-12">
+                        <div className="bg-muted/50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                          <ImageIcon className="w-10 h-10 opacity-50" />
+                        </div>
+                        <p className="text-lg font-medium text-foreground">
+                          Upload an Earth Observation image
                         </p>
                         <p className="text-sm mt-2">
                           Supported formats: JPG, PNG, WebP
                         </p>
-                        <p className="text-xs mt-3">
+                        <p className="text-xs mt-3 opacity-70">
                           Optional: Upload .meta or .txt file for metadata
                         </p>
                       </div>
@@ -922,18 +945,16 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                     {messages.map((message, index) => (
                       <div
                         key={index}
-                        className={`flex ${
-                          message.role === "user"
-                            ? "justify-end"
-                            : "justify-start"
-                        } animate-fade-in`}
+                        className={`flex ${message.role === "user"
+                          ? "justify-end"
+                          : "justify-start"
+                          } animate-fade-in`}
                       >
                         <div
-                          className={`max-w-[85%] rounded-xl px-3 py-2.5 ${
-                            message.role === "user"
-                              ? "bg-white text-black"
-                              : "bg-white/10 border border-white/20 text-white"
-                          }`}
+                          className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card border border-border text-card-foreground"
+                            }`}
                         >
                           {message.image && (
                             <MessageImage
@@ -943,10 +964,10 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                                 showAttentionHeatmap &&
                                 message.role === "user" &&
                                 index ===
-                                  messages
-                                    .map((m, i) => (m.role === "user" ? i : -1))
-                                    .filter((i) => i >= 0)
-                                    .slice(-1)[0]
+                                messages
+                                  .map((m, i) => (m.role === "user" ? i : -1))
+                                  .filter((i) => i >= 0)
+                                  .slice(-1)[0]
                               }
                               onROISelect={handleROISelect}
                             />
@@ -959,15 +980,15 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                                   {message.content}
                                 </p>
                                 <div className="text-xs text-muted-foreground border-t border-border pt-2 mt-2">
-                                  <span className="font-medium">
-                                    💡 Detailed analysis available in the
-                                    dashboard →
+                                  <span className="font-medium flex items-center gap-1">
+                                    <Sparkles className="w-3 h-3" />
+                                    Detailed analysis available in the dashboard
                                   </span>
                                 </div>
                               </div>
                             ) : (
                               // For text responses, show full markdown
-                              <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100 prose-code:text-gray-300">
+                              <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-p:leading-relaxed">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {message.content}
                                 </ReactMarkdown>
@@ -984,10 +1005,10 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
 
                     {isProcessing && (
                       <div className="flex justify-start animate-fade-in">
-                        <div className="bg-primary/10 border border-primary/30 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg shadow-primary/10">
+                        <div className="bg-muted border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
                           <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                          <span className="text-sm text-foreground">
-                            Analyzing...
+                          <span className="text-sm text-muted-foreground">
+                            Analyzing satellite imagery...
                           </span>
                         </div>
                       </div>
@@ -997,7 +1018,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                   </div>
 
                   {/* Input */}
-                  <div className="border-t border-white/10 p-3 bg-black/20 backdrop-blur-sm flex-shrink-0">
+                  <div className="border-t border-border p-4 bg-card/30 backdrop-blur-md flex-shrink-0">
                     {uploadedImage && (
                       <ImagePreview
                         imageUrl={uploadedImage}
@@ -1030,7 +1051,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isProcessing}
                         title="Upload Image"
-                        className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/40 h-9 w-9"
+                        className="h-10 w-10 shrink-0"
                       >
                         <Upload className="h-4 w-4" />
                       </Button>
@@ -1040,7 +1061,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                         onClick={() => metadataInputRef.current?.click()}
                         disabled={isProcessing}
                         title="Upload Metadata"
-                        className="border-accent/30 text-accent hover:bg-accent/10 hover:border-accent/40 h-9 w-9"
+                        className="h-10 w-10 shrink-0"
                       >
                         <FileText className="h-4 w-4" />
                       </Button>
@@ -1052,7 +1073,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                         }
                         placeholder="Ask about the image..."
                         disabled={isProcessing}
-                        className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 h-9"
+                        className="h-10 bg-background/50"
                       />
                       <Button
                         onClick={
@@ -1063,8 +1084,8 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                         }
                         className={
                           isProcessing
-                            ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground h-9"
-                            : "bg-primary hover:bg-primary/90 text-primary-foreground h-9 shadow-lg shadow-primary/20"
+                            ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground h-10 px-4"
+                            : "bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-4 shadow-sm"
                         }
                         title={
                           isProcessing ? "Stop processing" : "Send message"
@@ -1088,9 +1109,9 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                 )}
               </div>
 
-              {/* Right: Analysis Dashboard - Increased from 4 to 5 columns */}
-              <div className="hidden lg:flex lg:col-span-5 flex-col min-h-0 overflow-hidden gap-3">
-                {/* Vision Pipeline - Moved here from below prompt */}
+              {/* Right: Analysis Dashboard */}
+              <div className="hidden lg:flex lg:col-span-5 flex-col min-h-0 overflow-hidden gap-4">
+                {/* Vision Pipeline */}
                 {isProcessing && (
                   <div className="flex-shrink-0">
                     <VisionPipeline
@@ -1102,13 +1123,15 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
 
                 {/* Analysis Dashboard or Loading State */}
                 {isProcessing && !currentAnalysisData ? (
-                  <Card className="flex-1 flex flex-col items-center justify-center p-6 bg-card/50 backdrop-blur-md border-primary/20 shadow-lg shadow-primary/10">
+                  <Card className="flex-1 flex flex-col items-center justify-center p-8 bg-card/50 backdrop-blur-sm border-border shadow-sm">
                     <div className="text-center w-full max-w-md">
-                      <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
-                      <p className="text-lg text-foreground font-semibold mb-2">
+                      <div className="bg-primary/10 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                      </div>
+                      <p className="text-xl text-foreground font-semibold mb-2">
                         Analyzing Image...
                       </p>
-                      <p className="text-sm text-muted-foreground mb-6">
+                      <p className="text-sm text-muted-foreground mb-8">
                         Processing Earth Observation data
                       </p>
                       <div className="space-y-2">
@@ -1118,10 +1141,16 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                         </div>
                         <Progress value={analysisProgress} className="h-2" />
                       </div>
-                      <div className="mt-6 text-xs text-muted-foreground space-y-1">
-                        <p>• Extracting features</p>
-                        <p>• Analyzing land cover</p>
-                        <p>• Calculating metrics</p>
+                      <div className="mt-8 text-xs text-muted-foreground space-y-2 text-left bg-muted/50 p-4 rounded-lg">
+                        <p className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3 h-3 text-green-500" /> Extracting visual features
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3 h-3 text-green-500" /> Analyzing land cover patterns
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Calculating quantitative metrics
+                        </p>
                       </div>
                     </div>
                   </Card>
@@ -1136,23 +1165,24 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                     isAnimating={true}
                   />
                 ) : (
-                  <Card className="flex-1 flex items-center justify-center p-6 bg-card/50 backdrop-blur-md border-accent/20 shadow-lg shadow-accent/10">
+                  <Card className="flex-1 flex items-center justify-center p-8 bg-card/50 backdrop-blur-sm border-border shadow-sm border-dashed">
                     <div className="text-muted-foreground text-center">
-                      <Eye className="w-10 h-10 mx-auto mb-2 opacity-50 text-accent" />
-                      <p className="text-sm text-foreground">
-                        Analysis dashboard will appear here
+                      <div className="bg-muted rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                        <Eye className="w-10 h-10 opacity-50" />
+                      </div>
+                      <p className="text-lg font-medium text-foreground">
+                        Analysis Dashboard
                       </p>
-                      <p className="text-xs mt-2">
-                        Upload an image and ask a question to begin
+                      <p className="text-sm mt-2 max-w-xs mx-auto">
+                        Upload an image and ask a question to see detailed analytics here
                       </p>
                     </div>
                   </Card>
                 )}
               </div>
 
-              {/* Mobile Dashboard - Shows below chat on small screens */}
-              <div className="lg:hidden col-span-12 mt-4 space-y-3">
-                {/* Vision Pipeline for mobile */}
+              {/* Mobile Dashboard */}
+              <div className="lg:hidden col-span-12 mt-4 space-y-4">
                 {isProcessing && (
                   <div className="flex-shrink-0">
                     <VisionPipeline
@@ -1162,24 +1192,14 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
                   </div>
                 )}
 
-                {/* Loading state for mobile */}
                 {isProcessing && !currentAnalysisData && (
-                  <Card className="flex flex-col items-center justify-center p-6 bg-white/5 backdrop-blur-md border-white/10 shadow-lg">
+                  <Card className="flex flex-col items-center justify-center p-6 bg-card border-border shadow-sm">
                     <div className="text-center w-full">
-                      <Loader2 className="w-10 h-10 mx-auto mb-3 text-primary animate-spin" />
-                      <p className="text-base text-white font-semibold mb-2">
+                      <Loader2 className="w-8 h-8 mx-auto mb-3 text-primary animate-spin" />
+                      <p className="text-base text-foreground font-semibold mb-2">
                         Analyzing Image...
                       </p>
-                      <p className="text-xs text-gray-400 mb-4">
-                        Processing data
-                      </p>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-gray-400 mb-1">
-                          <span>Progress</span>
-                          <span>{analysisProgress}%</span>
-                        </div>
-                        <Progress value={analysisProgress} className="h-2" />
-                      </div>
+                      <Progress value={analysisProgress} className="h-2" />
                     </div>
                   </Card>
                 )}

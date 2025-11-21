@@ -1,4 +1,4 @@
-import { type AnalysisData } from "@/components/AnalysisDashboard";
+import { type AnalysisData } from "@/features/chat-analysis/components/AnalysisDashboard";
 
 export const generateMockAnalysisData = (): AnalysisData => {
   return {
@@ -75,26 +75,26 @@ export const generateMockAnalysisData = (): AnalysisData => {
 export const parseAnalysisFromText = (text: string): AnalysisData | null => {
   // Try to extract data from plain text response as fallback
   const mock = generateMockAnalysisData();
-  
+
   // Extract percentages if mentioned
   const vegMatch = text.match(/vegetation[:\s]+(\d+\.?\d*)%/i);
   if (vegMatch) mock.landCover.vegetation = parseFloat(vegMatch[1]);
-  
+
   const waterMatch = text.match(/water[:\s]+(\d+\.?\d*)%/i);
   if (waterMatch) mock.landCover.water = parseFloat(waterMatch[1]);
-  
+
   const urbanMatch = text.match(/urban[:\s]+(\d+\.?\d*)%/i);
   if (urbanMatch) mock.landCover.urban = parseFloat(urbanMatch[1]);
-  
+
   // Extract NDVI if mentioned
   const ndviMatch = text.match(/ndvi[:\s]+(\d+\.?\d*)/i);
   if (ndviMatch) mock.vegetation.ndvi = parseFloat(ndviMatch[1]);
-  
+
   // Use first few sentences as summary
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
   if (sentences.length > 0) {
     mock.summary = sentences.slice(0, 2).join(". ") + ".";
   }
-  
+
   return mock;
 };

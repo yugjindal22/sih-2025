@@ -1,7 +1,7 @@
 import { memo, useState, useEffect } from "react";
 import AttentionHeatmap from "./AttentionHeatmap";
 import ROISelector from "./ROISelector";
-import { Skeleton } from "./ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 
 interface MessageImageProps {

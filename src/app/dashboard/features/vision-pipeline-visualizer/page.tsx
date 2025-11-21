@@ -22,7 +22,7 @@ export default function VisionPipelineVisualizerPage() {
                         Explore the multimodal vision processing pipeline architecture
                     </p>
 
-                    <VisionPipeline />
+                    <VisionPipeline isActive={true} />
                 </div>
             </div>
         </div>

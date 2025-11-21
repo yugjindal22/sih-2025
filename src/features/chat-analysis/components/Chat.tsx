@@ -28,7 +28,7 @@ import QuantitativeInsights, {
   extractQuantitativeMetrics,
 } from "./QuantitativeInsights";
 import ROISelector from "./ROISelector";
-import CompareMode from "./CompareMode";
+import CompareMode from "@/features/compare-mode/components/CompareMode";
 import AnalysisDashboard, { type AnalysisData } from "./AnalysisDashboard";
 import MessageImage from "./MessageImage";
 import ImagePreview from "./ImagePreview";

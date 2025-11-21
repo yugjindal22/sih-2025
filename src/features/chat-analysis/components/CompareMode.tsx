@@ -45,7 +45,7 @@ const CompareMode = ({ image1, image2, onClose }: CompareModeProps) => {
   useEffect(() => {
     const analyzeChanges = async () => {
       setIsAnalyzing(true);
-      
+
       try {
         const prompt = `You are an expert Earth Observation analyst. Compare these two satellite/aerial images and provide a detailed change detection analysis.
 
@@ -76,7 +76,7 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
         const base64Image2 = image2.url.split(",")[1];
 
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=AIzaSyBRaOsTCMuVDv9xJMB1wJ8NSmoVe9LowZI`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=AIzaSyBRaOsTCMuVDv9xJMB1wJ8NSmoVe9LowZI`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -118,12 +118,12 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
               changes: parsed.changes.map((change: any) => ({
                 ...change,
                 icon: change.change > 0 ? TrendingUp : change.change < 0 ? TrendingDown : Minus,
-                color: 
-                  change.severity === "high" 
-                    ? "text-red-400" 
-                    : change.severity === "medium" 
-                    ? "text-yellow-400" 
-                    : "text-blue-400",
+                color:
+                  change.severity === "high"
+                    ? "text-red-400"
+                    : change.severity === "medium"
+                      ? "text-yellow-400"
+                      : "text-blue-400",
               })),
             };
           } else {
@@ -184,7 +184,7 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging) return;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percentage = (x / rect.width) * 100;
@@ -195,7 +195,7 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
     <div className="fixed inset-0 z-[100] bg-gradient-to-br from-[#0a0a0f] via-[#0f1419] to-[#0a0a0f] animate-fade-in">
       {/* Enhanced Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
-      
+
       <div className="relative z-10 max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 h-full flex flex-col">
         {/* Enhanced Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6 flex-shrink-0">
@@ -381,15 +381,14 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
                       <p className="text-xs text-gray-300 leading-relaxed">{analysis.summary}</p>
                       <div className="mt-3 flex items-center gap-2">
                         <span className="text-xs text-gray-400">Overall Change:</span>
-                        <Badge 
-                          variant="outline" 
-                          className={`${
-                            analysis.totalChangePercent > 20 
-                              ? "bg-red-500/20 text-red-300 border-red-400/30" 
+                        <Badge
+                          variant="outline"
+                          className={`${analysis.totalChangePercent > 20
+                              ? "bg-red-500/20 text-red-300 border-red-400/30"
                               : analysis.totalChangePercent > 10
-                              ? "bg-yellow-500/20 text-yellow-300 border-yellow-400/30"
-                              : "bg-blue-500/20 text-blue-300 border-blue-400/30"
-                          }`}
+                                ? "bg-yellow-500/20 text-yellow-300 border-yellow-400/30"
+                                : "bg-blue-500/20 text-blue-300 border-blue-400/30"
+                            }`}
                         >
                           {analysis.totalChangePercent.toFixed(1)}%
                         </Badge>
@@ -407,8 +406,8 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
                     </h3>
                     <div className="space-y-2">
                       {analysis.keyInsights.slice(0, 3).map((insight, idx) => (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="flex items-start gap-2 text-xs text-gray-300 bg-white/5 p-2 rounded-lg"
                         >
                           <span className="text-primary font-bold">•</span>
@@ -427,34 +426,32 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
                       {analysis.changes.length} categories analyzed
                     </p>
                   </div>
-                  
+
                   <ScrollArea className="flex-1 min-h-0">
                     <div className="p-4 space-y-3">
                       {analysis.changes.map((change, index) => {
                         const Icon = change.icon;
                         const isIncrease = change.change > 0;
                         const isSignificant = Math.abs(change.change) > 5;
-                        
+
                         return (
                           <div
                             key={index}
-                            className={`p-3 rounded-xl border transition-all animate-fade-in hover:scale-[1.02] ${
-                              change.severity === "high"
+                            className={`p-3 rounded-xl border transition-all animate-fade-in hover:scale-[1.02] ${change.severity === "high"
                                 ? "bg-red-500/10 border-red-400/30 shadow-glow"
                                 : change.severity === "medium"
-                                ? "bg-yellow-500/10 border-yellow-400/30"
-                                : "bg-white/5 border-white/10"
-                            }`}
+                                  ? "bg-yellow-500/10 border-yellow-400/30"
+                                  : "bg-white/5 border-white/10"
+                              }`}
                             style={{ animationDelay: `${index * 0.1}s` }}
                           >
                             <div className="flex items-start gap-3">
-                              <div className={`p-2 rounded-lg ${
-                                change.severity === "high" 
-                                  ? "bg-red-500/20" 
+                              <div className={`p-2 rounded-lg ${change.severity === "high"
+                                  ? "bg-red-500/20"
                                   : change.severity === "medium"
-                                  ? "bg-yellow-500/20"
-                                  : "bg-blue-500/20"
-                              } ${change.color}`}>
+                                    ? "bg-yellow-500/20"
+                                    : "bg-blue-500/20"
+                                } ${change.color}`}>
                                 <Icon className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -462,13 +459,12 @@ Provide at least 5-8 specific change categories with quantitative estimates.`;
                                   <h4 className="text-sm font-medium text-white">{change.category}</h4>
                                   <Badge
                                     variant="outline"
-                                    className={`text-xs font-bold ${
-                                      isIncrease 
-                                        ? "bg-green-500/20 text-green-300 border-green-400/30" 
-                                        : change.change === 0 
-                                        ? "bg-gray-500/20 text-gray-300 border-gray-400/30" 
-                                        : "bg-red-500/20 text-red-300 border-red-400/30"
-                                    }`}
+                                    className={`text-xs font-bold ${isIncrease
+                                        ? "bg-green-500/20 text-green-300 border-green-400/30"
+                                        : change.change === 0
+                                          ? "bg-gray-500/20 text-gray-300 border-gray-400/30"
+                                          : "bg-red-500/20 text-red-300 border-red-400/30"
+                                      }`}
                                   >
                                     {isIncrease ? "+" : ""}{change.change.toFixed(1)}%
                                   </Badge>

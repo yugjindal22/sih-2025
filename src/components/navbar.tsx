@@ -9,7 +9,7 @@ export default function Navbar() {
     const { theme, setTheme } = useTheme();
 
     return (
-        <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" suppressHydrationWarning={true}>
             <div className="container flex h-16 items-center justify-between px-4">
                 <Link href="/" className="flex items-center gap-3 font-semibold">
                     <div className="relative">

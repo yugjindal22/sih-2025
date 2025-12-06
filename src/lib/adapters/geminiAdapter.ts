@@ -20,11 +20,22 @@ export class GeminiAdapter implements VisionAdapter {
         input: AnalysisInput,
         options?: AnalysisOptions
     ): Promise<AnalysisResult> {
-        const { imageUrl, prompt, metadata } = input;
+        const { imageUrls, prompt, metadata } = input;
         const model = options?.model || "gemini-2.5-flash";
 
-        // Convert image to base64
-        const base64Image = imageUrl.split(",")[1];
+        const parts: any[] = [{ text: prompt }];
+
+        // Add all images to parts
+        imageUrls.forEach(imageUrl => {
+            // Convert image to base64
+            const base64Image = imageUrl.split(",")[1];
+            parts.push({
+                inline_data: {
+                    mime_type: "image/jpeg",
+                    data: base64Image,
+                },
+            });
+        });
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
@@ -36,15 +47,7 @@ export class GeminiAdapter implements VisionAdapter {
                 body: JSON.stringify({
                     contents: [
                         {
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inline_data: {
-                                        mime_type: "image/jpeg",
-                                        data: base64Image,
-                                    },
-                                },
-                            ],
+                            parts: parts,
                         },
                     ],
                 }),
@@ -64,6 +67,7 @@ export class GeminiAdapter implements VisionAdapter {
             text,
             metadata: {
                 model,
+                images_processed: imageUrls.length,
                 ...metadata,
             },
         };

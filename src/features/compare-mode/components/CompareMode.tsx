@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { responseService } from "@/lib/response-service";
 
 interface CompareImage {
   url: string;
@@ -79,58 +80,19 @@ Focus on: vegetation cover, water bodies, urban development, land use changes, d
 
 Provide at least 5-8 specific change categories with quantitative estimates.`;
 
-        // Convert images to base64
-        const base64Image1 = image1.url.split(",")[1];
-        const base64Image2 = image2.url.split(",")[1];
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: prompt },
-                    {
-                      inline_data: {
-                        mime_type: "image/jpeg",
-                        data: base64Image1,
-                      },
-                    },
-                    {
-                      inline_data: {
-                        mime_type: "image/jpeg",
-                        data: base64Image2,
-                      },
-                    },
-                  ],
-                },
-              ],
-            }),
+        // Use the response service for dynamic model selection
+        const analysisResult = await responseService.analyzeImage({
+          imageUrls: [image1.url, image2.url],
+          prompt,
+          metadata: {
+            image1_label: image1.label,
+            image1_date: image1.date,
+            image2_label: image2.label,
+            image2_date: image2.date,
           }
-        );
+        });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("API Error:", {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText,
-          });
-          throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Check if we got a valid response
-        if (!data.candidates || !data.candidates[0]) {
-          console.error("Invalid API response:", data);
-          throw new Error("Invalid response from API - no candidates returned");
-        }
-
-        const aiResponse = data.candidates[0]?.content?.parts[0]?.text || "";
+        const aiResponse = analysisResult.text;
 
         // Parse JSON from response
         let parsedAnalysis: ComparisonAnalysis;

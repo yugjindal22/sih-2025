@@ -138,21 +138,25 @@ Return only the clean JSON:`;
         // Always sanitize with Gemini first
         console.log("Sanitizing response with Gemini...");
         const sanitizedText = await this.sanitizeWithGemini(responseText);
+        let finalText = sanitizedText;
         try {
             parsedResponse = JSON.parse(sanitizedText);
+            // Return the sanitized JSON string so Chat.tsx can parse it consistently
+            finalText = sanitizedText;
         } catch (e) {
             // Still failed, use as plain text
             console.warn("JSON parse failed even after sanitization:", e);
             parsedResponse = { summary: responseText };
+            // Return plain text if JSON parsing fails
+            finalText = responseText;
         }
 
         return {
-            text: parsedResponse.summary || data.response,
+            text: finalText,
             confidence: parsedResponse.confidence ? parsedResponse.confidence / 100 : 0.85,
             metadata: {
                 model: data.model || parsedResponse.model || "OpenGVLab/InternVL2-2B",
                 images_processed: data.images_processed || imageUrls.length,
-                ...parsedResponse,
                 ...metadata,
             },
         };

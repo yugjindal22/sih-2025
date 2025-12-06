@@ -1,5 +1,6 @@
 // Local Pipeline Adapter - Implementation for multimodal OSS backend
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type {
     VisionAdapter,
     AnalysisInput,
@@ -10,14 +11,56 @@ import type {
 export class LocalPipelineAdapter implements VisionAdapter {
     name = "Local GPT-OSS Pipeline";
     private baseUrl: string;
+    private geminiClient: GoogleGenerativeAI;
 
-    constructor(baseUrl?: string) {
+    constructor(baseUrl?: string, geminiApiKey?: string) {
         // Ensure baseUrl doesn't end with /chat since we add it in the fetch call
         let url = baseUrl || process.env.NEXT_PUBLIC_LOCAL_OSS_URL || "";
         if (url.endsWith('/chat')) {
             url = url.slice(0, -5); // Remove '/chat' from the end
         }
         this.baseUrl = url;
+        
+        const apiKey = geminiApiKey || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+        this.geminiClient = new GoogleGenerativeAI(apiKey);
+    }
+
+    private async sanitizeWithGemini(rawText: string): Promise<string> {
+        if (!this.geminiClient) {
+            console.warn("Gemini client not initialized for sanitization");
+            return rawText;
+        }
+
+        const sanitizationPrompt = `You are a JSON sanitizer. The following text contains a JSON response but may have extra tokens, markdown formatting, or other artifacts. Extract ONLY the valid JSON object and return it as clean, parseable JSON. Do not add any explanation, just return the clean JSON.
+
+Raw text:
+${rawText}
+
+Return only the clean JSON:`;
+
+        try {
+            const model = this.geminiClient.getGenerativeModel({ model: "gemini-2.0-flash" });
+            const result = await model.generateContent(sanitizationPrompt);
+            const response = await result.response;
+            const sanitizedText = response.text();
+            
+            // Remove any markdown code blocks if present
+            let cleaned = sanitizedText.trim();
+            if (cleaned.startsWith('```json')) {
+                cleaned = cleaned.slice(7);
+            } else if (cleaned.startsWith('```')) {
+                cleaned = cleaned.slice(3);
+            }
+            if (cleaned.endsWith('```')) {
+                cleaned = cleaned.slice(0, -3);
+            }
+            
+            console.log("Sanitized JSON from Gemini:", cleaned);
+            return cleaned.trim();
+        } catch (error) {
+            console.error("Gemini sanitization failed with detailed error:", error);
+            return rawText;
+        }
     }
 
     async analyzeImage(
@@ -82,12 +125,34 @@ export class LocalPipelineAdapter implements VisionAdapter {
 
         const data = await response.json();
 
+        console.log("Received payload from Local OSS backend:", data);
+
+        let responseText = data.response;
+        let parsedResponse: any = null;
+
+        // Remove <|im_end|> if present
+        if (responseText.endsWith('<|im_end|>')) {
+            responseText = responseText.slice(0, -10);
+        }
+
+        // Always sanitize with Gemini first
+        console.log("Sanitizing response with Gemini...");
+        const sanitizedText = await this.sanitizeWithGemini(responseText);
+        try {
+            parsedResponse = JSON.parse(sanitizedText);
+        } catch (e) {
+            // Still failed, use as plain text
+            console.warn("JSON parse failed even after sanitization:", e);
+            parsedResponse = { summary: responseText };
+        }
+
         return {
-            text: data.response,
-            confidence: 0.85, // Default confidence since not provided
+            text: parsedResponse.summary || data.response,
+            confidence: parsedResponse.confidence ? parsedResponse.confidence / 100 : 0.85,
             metadata: {
-                model: data.model || "OpenGVLab/InternVL2-2B",
+                model: data.model || parsedResponse.model || "OpenGVLab/InternVL2-2B",
                 images_processed: data.images_processed || imageUrls.length,
+                ...parsedResponse,
                 ...metadata,
             },
         };

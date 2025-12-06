@@ -632,7 +632,8 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
   }
 }
 
-Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
+IMPORTANT: 
+Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no escpae sequences, just pure JSON in plain text. JSON MODE ON`;
 
       parts.push({
         text: enhancedPrompt,

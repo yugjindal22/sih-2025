@@ -63,6 +63,8 @@ export class GeminiAdapter implements VisionAdapter {
             data.candidates?.[0]?.content?.parts?.[0]?.text ||
             "No response from Gemini";
 
+        console.log("Received payload from Gemini backend:", data);
+
         return {
             text,
             metadata: {

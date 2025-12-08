@@ -44,6 +44,7 @@ import {
   type SatelliteMetadata,
 } from "@/lib/metadata-utils";
 import { parseAnalysisFromText } from "@/lib/analysis-utils";
+import { responseService } from "@/lib/response-service";
 
 interface Message {
   role: "user" | "assistant";
@@ -68,14 +69,6 @@ const Chat = ({ onBack }: ChatProps) => {
   const [showLogs, setShowLogs] = useState(false);
   const [metadata, setMetadata] = useState<SatelliteMetadata | null>(null);
   const [showAttentionHeatmap, setShowAttentionHeatmap] = useState(false);
-  const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem("gemini_api_key");
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-  }, []);
   const [currentReasoningSteps, setCurrentReasoningSteps] = useState<any[]>([]);
   const [currentMetrics, setCurrentMetrics] = useState<any>(null);
   const [currentAnalysisData, setCurrentAnalysisData] =
@@ -420,39 +413,19 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
         text: enhancedPrompt,
       });
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: parts,
-              },
-            ],
-          }),
-          signal: controller.signal, // Add abort signal
+      // Use the response service for dynamic model selection
+      const analysisResult = await responseService.analyzeImage({
+        imageUrls: [imageUrl],
+        prompt: enhancedPrompt,
+        metadata: {
+          satellite: metadata?.satellite,
+          sensor: metadata?.sensor,
+          date: metadata?.date,
+          location: metadata?.location,
         }
-      );
+      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText,
-          apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "NOT SET"
-        });
-        throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
-      }
-
-      const data = await response.json();
-      const aiResponse =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Sorry, I couldn't analyze the image.";
+      const aiResponse = analysisResult.text;
 
       // Mark pipeline as complete since we got the response
       setIsPipelineComplete(true);
@@ -659,45 +632,26 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
   }
 }
 
-Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
+IMPORTANT: 
+Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no escpae sequences, just pure JSON in plain text. JSON MODE ON`;
 
       parts.push({
         text: enhancedPrompt,
       });
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: parts,
-              },
-            ],
-          }),
-          signal: controller.signal, // Add abort signal
+      // Use the response service for dynamic model selection
+      const analysisResult = await responseService.analyzeImage({
+        imageUrls: uploadedImage ? [uploadedImage] : [],
+        prompt: enhancedPrompt,
+        metadata: {
+          satellite: metadata?.satellite,
+          sensor: metadata?.sensor,
+          date: metadata?.date,
+          location: metadata?.location,
         }
-      );
+      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText,
-          apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : "NOT SET"
-        });
-        throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
-      }
-
-      const data = await response.json();
-      const analysisResponse =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Sorry, I couldn't analyze the image.";
+      const analysisResponse = analysisResult.text;
 
       // Mark pipeline as complete since we got the response
       setIsPipelineComplete(true);
@@ -810,7 +764,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
           }}
         />
       ) : (
-        <div className="relative min-h-[calc(100vh-4rem)] bg-background overflow-hidden flex flex-col">
+        <div className="relative min-h-[calc(100vh-4rem)] bg-background overflow-hidden flex flex-col" suppressHydrationWarning={true}>
           {/* Grid Pattern Overlay - Theme Aware */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.1)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
 

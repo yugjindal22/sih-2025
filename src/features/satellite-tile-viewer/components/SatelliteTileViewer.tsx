@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Send,
   UploadCloud,
@@ -14,6 +16,11 @@ import {
   AlertCircle,
   CheckCircle2,
   MapPin,
+  Download,
+  Search,
+  Calendar,
+  FileArchive,
+  Satellite,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
@@ -38,16 +45,32 @@ interface Message {
   text: string;
 }
 
+interface DownloadedFile {
+  filename: string;
+  path: string;
+  size_mb: number;
+  modified: string;
+}
+
 export default function SatelliteTileViewer() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "ai",
-      text: "Systems Online. Upload Sentinel-2 Data to begin geospatial analysis.",
+      text: "Systems Online. Search and download Sentinel-2 data or upload existing files.",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [downloadingDemo, setDownloadingDemo] = useState(false);
+
+  // Search & Download State
+  const [searchLocation, setSearchLocation] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [downloadedFiles, setDownloadedFiles] = useState<DownloadedFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [processingFile, setProcessingFile] = useState<string | null>(null);
 
   // Map State
   const [position, setPosition] = useState<any>(null);
@@ -72,11 +95,181 @@ export default function SatelliteTileViewer() {
         shadowUrl: "/leaflet/marker-shadow.png",
       });
     }
+
+    // Load downloaded files on mount
+    fetchDownloadedFiles();
   }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Fetch list of downloaded files from backend
+  const fetchDownloadedFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const response = await fetch("http://localhost:5001/api/list-downloads");
+      if (response.ok) {
+        const data = await response.json();
+        setDownloadedFiles(data.files || []);
+      }
+    } catch (error) {
+      console.error("Error fetching downloaded files:", error);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  // Search and download satellite data
+  const handleSearchAndDownload = async () => {
+    if (!searchLocation || !startDate || !endDate) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "error",
+          text: "Please provide location, start date, and end date",
+        },
+      ]);
+      return;
+    }
+
+    setSearching(true);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        text: `Searching for satellite data: ${searchLocation} (${startDate} to ${endDate})`,
+      },
+    ]);
+
+    try {
+      const response = await fetch(
+        "http://localhost:5001/api/search-and-download",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            location: searchLocation,
+            sdate: startDate,
+            edate: endDate,
+            satellites: [
+              "Sentinel-2A_MSI_Level-2A",
+              "Sentinel-2B_MSI_Level-2A",
+            ],
+            max_downloads: 3,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const downloaded = data.summary?.total_downloaded || 0;
+        const existed = data.summary?.already_existed || 0;
+        const failed = data.summary?.failed || 0;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "ai",
+            text: `Search Complete! Found ${data.products_found} products. Downloaded: ${downloaded}, Already existed: ${existed}, Failed: ${failed}`,
+          },
+        ]);
+
+        // Refresh the downloaded files list
+        await fetchDownloadedFiles();
+
+        // If coordinates available, center map
+        if (data.coordinates) {
+          setPosition({
+            lat: data.coordinates.lat,
+            lng: data.coordinates.lon,
+          });
+        }
+      } else {
+        throw new Error(data.error || "Search failed");
+      }
+    } catch (error: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "error",
+          text: `Search Error: ${error.message}`,
+        },
+      ]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Process a downloaded file
+  const handleProcessDownloadedFile = async (filepath: string) => {
+    setProcessingFile(filepath);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        text: `Processing file: ${
+          filepath.split("\\").pop() || filepath.split("/").pop()
+        }`,
+      },
+    ]);
+
+    try {
+      const response = await fetch("http://localhost:5001/api/process-zip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          zip_path: filepath,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Processing failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Set the overlay image and bounds from the response
+      if (data.bounds && data.processed_image_url) {
+        const bounds = [
+          [data.bounds[1], data.bounds[0]], // Southwest corner
+          [data.bounds[3], data.bounds[2]], // Northeast corner
+        ];
+
+        // Center the map on the overlay
+        const centerLat = (data.bounds[1] + data.bounds[3]) / 2;
+        const centerLng = (data.bounds[0] + data.bounds[2]) / 2;
+        setPosition({ lat: centerLat, lng: centerLng });
+
+        // Set bounds and image
+        setOverlayBounds(bounds);
+        setOverlayImage(data.processed_image_url);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "ai",
+            text: "Processing complete! Satellite imagery loaded on map.",
+          },
+        ]);
+      }
+    } catch (error: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "error",
+          text: `Processing Error: ${error.message}`,
+        },
+      ]);
+    } finally {
+      setProcessingFile(null);
+    }
+  };
 
   // Demo locations with hardcoded satellite imagery
   const demoLocations = [
@@ -186,9 +379,9 @@ export default function SatelliteTileViewer() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* MAP CONTAINER */}
-      <div className="relative flex-1 flex flex-col">
+      <div className="relative flex-1 flex flex-col h-[50vh] lg:h-screen">
         <MapView
           overlayImage={overlayImage}
           overlayBounds={overlayBounds}
@@ -198,18 +391,18 @@ export default function SatelliteTileViewer() {
         />
 
         {/* Floating UI */}
-        <div className="absolute top-6 left-6 z-[400] flex flex-col gap-3">
+        <div className="absolute top-2 left-2 lg:top-6 lg:left-6 z-[400] flex flex-col gap-2 lg:gap-3 max-w-[calc(100vw-1rem)] lg:max-w-none">
           <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border-slate-200 dark:border-slate-700 shadow-xl">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                  <Globe className="w-5 h-5 text-white" />
+            <CardContent className="p-2 lg:p-4">
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="p-1.5 lg:p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
+                  <Globe className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-sm text-slate-900 dark:text-white">
+                  <h1 className="font-bold text-xs lg:text-sm text-slate-900 dark:text-white">
                     Satellite Tile Viewer
                   </h1>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                  <p className="text-[10px] lg:text-xs text-slate-600 dark:text-slate-400">
                     GEO Analysis Interface
                   </p>
                 </div>
@@ -219,16 +412,17 @@ export default function SatelliteTileViewer() {
 
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg gap-2"
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg gap-2 text-xs lg:text-sm h-8 lg:h-10"
           >
-            <UploadCloud className="w-4 h-4" />
-            Upload Sentinel-2 Tile
+            <UploadCloud className="w-3 h-3 lg:w-4 lg:h-4" />
+            <span className="hidden sm:inline">Upload Sentinel-2 Tile</span>
+            <span className="sm:hidden">Upload</span>
           </Button>
 
           {position && (
             <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border-slate-200 dark:border-slate-700">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 text-xs">
+              <CardContent className="p-2 lg:p-3">
+                <div className="flex items-center gap-2 text-[10px] lg:text-xs">
                   <MapPin className="w-3 h-3 text-emerald-500" />
                   <span className="text-slate-700 dark:text-slate-300 font-mono">
                     {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
@@ -249,108 +443,357 @@ export default function SatelliteTileViewer() {
       </div>
 
       {/* CHAT SIDEBAR */}
-      <div className="w-96 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-2xl">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/50">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-md">
-              <CheckCircle2 className="w-3 h-3 text-white" />
+      <div className="w-full lg:w-96 h-[50vh] lg:h-screen bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-2xl">
+        <div className="p-3 lg:p-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="p-1.5 lg:p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-md">
+                <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-white" />
+              </div>
+              <div>
+                <span className="text-sm lg:text-base font-bold text-slate-900 dark:text-slate-100 block">
+                  Control Panel
+                </span>
+                <span className="text-[10px] lg:text-xs text-slate-600 dark:text-slate-400">
+                  Search, Download & Analyze
+                </span>
+              </div>
             </div>
-            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              Analysis Panel
-            </span>
           </div>
         </div>
 
-        <ScrollArea className="flex-1 p-4 bg-slate-50 dark:bg-slate-950">
-          {/* Demo Locations Section */}
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3">
-              Demo Locations
-            </h3>
-            <div className="space-y-2">
-              {demoLocations.map((location, idx) => (
-                <Button
-                  key={idx}
-                  onClick={() => handleDemoLocation(location)}
-                  disabled={downloadingDemo}
-                  className="w-full justify-start bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 h-auto py-3"
-                  variant="outline"
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                    <div className="text-left flex-1">
-                      <div className="font-medium text-sm">{location.name}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                        {location.coords.lat.toFixed(2)},{" "}
-                        {location.coords.lng.toFixed(2)}
-                      </div>
-                    </div>
-                    {downloadingDemo && (
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                    )}
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4 text-sm">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[85%] p-3 rounded-lg border ${
-                    msg.role === "user"
-                      ? "bg-gradient-to-r from-blue-500 to-cyan-500 border-blue-400 text-white"
-                      : msg.role === "error"
-                      ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-700 dark:text-red-200 flex items-start gap-2"
-                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-start gap-2"
-                  }`}
-                >
-                  {msg.role === "ai" && (
-                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-500 flex-shrink-0" />
-                  )}
-                  {msg.role === "error" && (
-                    <AlertCircle className="w-4 h-4 mt-0.5 text-red-500 flex-shrink-0" />
-                  )}
-                  <span>{msg.text}</span>
+        <ScrollArea className="flex-1 bg-slate-50 dark:bg-slate-950">
+          <div className="p-2 sm:p-3 lg:p-4 space-y-3 sm:space-y-4 lg:space-y-5">
+            {/* Search & Download Section */}
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="p-1 sm:p-1.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-md">
+                  <Satellite className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
                 </div>
+                <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Search Satellite Data
+                </h3>
               </div>
-            ))}
-            {loading && (
-              <div className="flex gap-2 items-center text-xs text-slate-500 dark:text-slate-400 p-2">
-                <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                Processing data...
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm">
+                <CardContent className="p-2 sm:p-3 lg:p-4 space-y-2 sm:space-y-2.5 lg:space-y-3">
+                  <div className="space-y-1 sm:space-y-1.5">
+                    <Label
+                      htmlFor="location"
+                      className="text-[9px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                    >
+                      Location Name
+                    </Label>
+                    <Input
+                      id="location"
+                      type="text"
+                      placeholder="e.g., New Delhi"
+                      value={searchLocation}
+                      onChange={(e) => setSearchLocation(e.target.value)}
+                      className="h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2 lg:gap-2.5">
+                    <div className="space-y-1 sm:space-y-1.5">
+                      <Label
+                        htmlFor="startDate"
+                        className="text-[9px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                      >
+                        Start Date
+                      </Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
+                      />
+                    </div>
+                    <div className="space-y-1 sm:space-y-1.5">
+                      <Label
+                        htmlFor="endDate"
+                        className="text-[9px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                      >
+                        End Date
+                      </Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleSearchAndDownload}
+                    disabled={
+                      searching || !searchLocation || !startDate || !endDate
+                    }
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm font-medium shadow-md"
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-1.5 sm:mr-2 animate-spin" />
+                        <span className="hidden sm:inline">
+                          Searching Satellites...
+                        </span>
+                        <span className="sm:hidden">Searching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-1.5 sm:mr-2" />
+                        <span className="hidden sm:inline">
+                          Search & Download
+                        </span>
+                        <span className="sm:hidden">Search</span>
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Separator className="bg-slate-200 dark:bg-slate-800" />
+
+            {/* Downloaded Files Section */}
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="p-1 sm:p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-md">
+                    <FileArchive className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+                  </div>
+                  <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                    Downloaded Files
+                  </h3>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] sm:text-[10px] lg:text-xs px-1.5 sm:px-2"
+                >
+                  {downloadedFiles.length}
+                </Badge>
               </div>
-            )}
-            <div ref={chatEndRef} />
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchDownloadedFiles}
+                disabled={loadingFiles}
+                className="w-full h-7 sm:h-8 text-[10px] sm:text-[11px] lg:text-xs border-slate-300 dark:border-slate-700"
+              >
+                {loadingFiles ? (
+                  <>
+                    <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5 animate-spin" />
+                    <span className="hidden sm:inline">Refreshing...</span>
+                    <span className="sm:hidden">Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Refresh File List</span>
+                    <span className="sm:hidden">Refresh</span>
+                  </>
+                )}
+              </Button>
+
+              {loadingFiles ? (
+                <div className="flex items-center justify-center py-6 sm:py-8 lg:py-12">
+                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 animate-spin text-blue-500" />
+                </div>
+              ) : downloadedFiles.length === 0 ? (
+                <Card className="bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 border-dashed">
+                  <CardContent className="p-3 sm:p-4 lg:p-6 text-center">
+                    <FileArchive className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mx-auto mb-1.5 sm:mb-2 text-slate-400" />
+                    <p className="text-[11px] sm:text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium mb-0.5 sm:mb-1">
+                      No files downloaded yet
+                    </p>
+                    <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-500">
+                      Search and download data above
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-1.5 sm:space-y-2">
+                  {downloadedFiles.map((file, idx) => (
+                    <Card
+                      key={idx}
+                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition-all"
+                    >
+                      <CardContent className="p-2 sm:p-2.5 lg:p-3">
+                        <div className="space-y-1.5 sm:space-y-2">
+                          <div className="flex items-start gap-1.5 sm:gap-2">
+                            <FileArchive className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] sm:text-xs lg:text-sm font-medium text-slate-900 dark:text-slate-100 truncate leading-tight">
+                                {file.filename}
+                              </p>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400">
+                                <span className="font-medium">
+                                  {file.size_mb.toFixed(2)} MB
+                                </span>
+                                <span className="text-slate-300 dark:text-slate-600">
+                                  •
+                                </span>
+                                <span className="font-mono">
+                                  {new Date(file.modified).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              handleProcessDownloadedFile(file.path)
+                            }
+                            disabled={processingFile === file.path}
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white h-7 sm:h-8 text-[10px] sm:text-xs font-medium shadow-sm"
+                          >
+                            {processingFile === file.path ? (
+                              <>
+                                <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5 animate-spin" />
+                                <span className="hidden sm:inline">
+                                  Processing...
+                                </span>
+                                <span className="sm:hidden">Loading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5" />
+                                <span className="hidden sm:inline">
+                                  Load on Map
+                                </span>
+                                <span className="sm:hidden">Load</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Separator className="bg-slate-200 dark:bg-slate-800" />
+
+            {/* Demo Locations Section */}
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="p-1 sm:p-1.5 bg-gradient-to-br from-orange-500 to-red-500 rounded-md">
+                  <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+                </div>
+                <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Quick Locations
+                </h3>
+              </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                {demoLocations.map((location, idx) => (
+                  <Button
+                    key={idx}
+                    onClick={() => handleDemoLocation(location)}
+                    disabled={downloadingDemo}
+                    className="w-full justify-start bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-blue-400 dark:hover:border-blue-600 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 h-auto py-2 sm:py-2.5 lg:py-3 shadow-sm transition-all"
+                    variant="outline"
+                  >
+                    <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 w-full">
+                      <div className="p-1 sm:p-1.5 bg-gradient-to-br from-orange-500 to-red-500 rounded-md flex-shrink-0">
+                        <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-3.5 lg:h-3.5 text-white" />
+                      </div>
+                      <div className="text-left flex-1 min-w-0">
+                        <div className="font-semibold text-[10px] sm:text-xs lg:text-sm truncate">
+                          {location.name}
+                        </div>
+                        <div className="text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                          {location.coords.lat.toFixed(2)},{" "}
+                          {location.coords.lng.toFixed(2)}
+                        </div>
+                      </div>
+                      {downloadingDemo && (
+                        <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin text-orange-500 flex-shrink-0" />
+                      )}
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Separator className="bg-slate-200 dark:bg-slate-800" />
+
+            {/* Activity Log Section */}
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="p-1 sm:p-1.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-md">
+                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+                </div>
+                <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Activity Log
+                </h3>
+              </div>
+              <div className="space-y-2 sm:space-y-2.5">
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${
+                      msg.role === "user" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[90%] p-2 sm:p-2.5 lg:p-3 rounded-lg border text-[10px] sm:text-xs lg:text-sm shadow-sm ${
+                        msg.role === "user"
+                          ? "bg-gradient-to-r from-blue-500 to-cyan-500 border-blue-400 text-white"
+                          : msg.role === "error"
+                          ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-700 dark:text-red-200 flex items-start gap-1.5 sm:gap-2"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-start gap-1.5 sm:gap-2"
+                      }`}
+                    >
+                      {msg.role === "ai" && (
+                        <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-emerald-500 flex-shrink-0" />
+                      )}
+                      {msg.role === "error" && (
+                        <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-red-500 flex-shrink-0" />
+                      )}
+                      <span className="leading-relaxed">{msg.text}</span>
+                    </div>
+                  </div>
+                ))}
+                {loading && (
+                  <div className="flex gap-1.5 sm:gap-2 items-center justify-center text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 p-2 sm:p-2.5 lg:p-3 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin text-blue-500" />
+                    <span className="hidden sm:inline">
+                      Processing satellite data...
+                    </span>
+                    <span className="sm:hidden">Processing...</span>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+            </div>
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30">
-          <div className="flex gap-2">
+        <div className="p-2 sm:p-3 lg:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30">
+          <div className="flex gap-1.5 sm:gap-2">
             <Input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Analyze current view..."
-              className="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+              placeholder="Ask about map..."
+              className="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm focus:ring-2 focus:ring-blue-500"
             />
             <Button
               onClick={handleSendMessage}
               size="icon"
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 shadow-md flex-shrink-0"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
             </Button>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-            Ask questions about the current viewport
+          <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2 text-center">
+            <span className="hidden sm:inline">
+              💬 Ask questions about the current satellite view
+            </span>
+            <span className="sm:hidden">💬 Ask about the map</span>
           </p>
         </div>
       </div>

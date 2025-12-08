@@ -100,7 +100,7 @@ export const features: FeatureModule[] = [
         title: "Temporal Fusion",
         description: "Multi-temporal data fusion for time-series analysis and trend detection",
         icon: Clock,
-        implemented: false,
+        implemented: true,
         route: "/dashboard/features/temporal-fusion",
         fromPrototype: false,
     },

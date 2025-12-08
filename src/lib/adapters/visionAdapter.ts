@@ -1,7 +1,7 @@
 // Vision Adapter Interface for multimodal analysis
 
 export interface AnalysisInput {
-    imageUrl: string;
+    imageUrls: string[]; // Changed to array to support multiple images
     prompt: string;
     metadata?: Record<string, any>;
 }

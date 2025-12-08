@@ -119,9 +119,9 @@ export const features: FeatureModule[] = [
         title: "Multi-Sensor Fusion",
         description: "Integrate data from multiple satellite sensors for enhanced analysis",
         icon: Layers,
-        implemented: false,
+        implemented: true,
         route: "/dashboard/features/multi-sensor-fusion",
-        fromPrototype: false,
+        fromPrototype: true,
     },
 ];
 

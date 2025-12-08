@@ -9,6 +9,7 @@ import {
     Brain,
     Clock,
     Layers,
+    CloudOff,
     type LucideIcon,
 } from "lucide-react";
 
@@ -102,6 +103,15 @@ export const features: FeatureModule[] = [
         icon: Clock,
         implemented: true,
         route: "/dashboard/features/temporal-fusion",
+        fromPrototype: false,
+    },
+    {
+        id: "cloud-masking",
+        title: "Cloud Masking",
+        description: "Automated cloud detection and removal from satellite imagery",
+        icon: CloudOff,
+        implemented: true,
+        route: "/dashboard/features/cloud-masking",
         fromPrototype: false,
     },
     {

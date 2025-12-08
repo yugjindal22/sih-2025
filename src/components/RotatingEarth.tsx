@@ -10,13 +10,10 @@ const RotatingEarth = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
     let rotation = 0;
-    const radius = Math.min(canvas.width, canvas.height) * 0.3;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    let radius = 0;
+    let centerX = 0;
+    let centerY = 0;
 
     const continents = [
       { name: "North America", lat: 45, lon: -100, width: 80, height: 60 },
@@ -26,6 +23,28 @@ const RotatingEarth = () => {
       { name: "Asia", lat: 40, lon: 90, width: 100, height: 70 },
       { name: "Australia", lat: -25, lon: 135, width: 40, height: 30 },
     ];
+
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      const rect = parent?.getBoundingClientRect();
+      const width = rect?.width ?? window.innerWidth;
+      const height = rect?.height ?? window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+
+      radius = Math.min(width, height) * 0.35;
+      centerX = width / 2;
+      centerY = height / 2;
+    };
+
+    resizeCanvas();
 
     const project3DPoint = (lat: number, lon: number, rot: number) => {
       const latRad = (lat * Math.PI) / 180;
@@ -65,14 +84,26 @@ const RotatingEarth = () => {
       continents.forEach((continent) => {
         const points: Array<{ x: number; y: number; z: number }> = [];
 
-        for (let dLat = -continent.height / 2; dLat <= continent.height / 2; dLat += 5) {
-          for (let dLon = -continent.width / 2; dLon <= continent.width / 2; dLon += 5) {
+        for (
+          let dLat = -continent.height / 2;
+          dLat <= continent.height / 2;
+          dLat += 5
+        ) {
+          for (
+            let dLon = -continent.width / 2;
+            dLon <= continent.width / 2;
+            dLon += 5
+          ) {
             const lat = continent.lat + dLat;
             const lon = continent.lon + dLon;
 
-            if (Math.abs(dLat) < continent.height / 2 && Math.abs(dLon) < continent.width / 2) {
+            if (
+              Math.abs(dLat) < continent.height / 2 &&
+              Math.abs(dLon) < continent.width / 2
+            ) {
               const distFromCenter = Math.sqrt(
-                (dLat / (continent.height / 2)) ** 2 + (dLon / (continent.width / 2)) ** 2
+                (dLat / (continent.height / 2)) ** 2 +
+                  (dLon / (continent.width / 2)) ** 2
               );
               if (distFromCenter < 0.9) {
                 const point = project3DPoint(lat, lon, rotation);
@@ -160,22 +191,20 @@ const RotatingEarth = () => {
       rotation += 0.3;
     };
 
+    let animationId: number;
     const animate = () => {
       drawEarth();
-      requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(animate);
     };
 
     animate();
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
+    const handleResize = () => resizeCanvas();
     window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(animationId);
     };
   }, []);
 

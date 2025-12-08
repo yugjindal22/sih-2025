@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@google/generative-ai": "^0.24.1",
+=======
+    "@google/generative-ai": "^0.21.0",
+>>>>>>> c0b31580c13eebbc5eb3b3194e4e50fb46ce5b29
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

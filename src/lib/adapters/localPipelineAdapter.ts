@@ -95,14 +95,21 @@ Return only the clean JSON:`;
         // For now, always send empty array as per spec
         payload.history = [];
 
-        const response = await fetch(`${this.baseUrl}/chat`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            body: JSON.stringify(payload),
-        });
+        let response;
+        try {
+            response = await fetch(`${this.baseUrl}/chat`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify(payload),
+                // No timeout or keepalive - allow unlimited processing time
+            });
+        } catch (fetchError: any) {
+            console.error("Fetch error details:", fetchError);
+            throw new Error(`Failed to connect to Local OSS backend at ${this.baseUrl}/chat. Please check:\n1. Backend server is running\n2. URL is correct: ${this.baseUrl}\n3. CORS is enabled on backend\n4. Network connectivity\n\nError: ${fetchError.message}`);
+        }
 
         if (!response.ok) {
             let errorMessage = `HTTP ${response.status}: ${response.statusText}`;

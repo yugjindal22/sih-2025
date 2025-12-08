@@ -91,11 +91,11 @@ const Chat = ({ onBack }: ChatProps) => {
   };
 
   useEffect(() => {
-    // Only scroll to bottom when not processing (i.e., when a response is complete)
-    if (!isProcessing && messages.length > 0) {
+    // Scroll to bottom when messages change
+    if (messages.length > 0) {
       scrollToBottom();
     }
-  }, [messages, isProcessing]);
+  }, [messages]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -123,6 +123,16 @@ const Chat = ({ onBack }: ChatProps) => {
         }
 
         toast.success("Image uploaded successfully");
+        // Reset input value to allow re-uploading the same file
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read image file");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -144,6 +154,11 @@ const Chat = ({ onBack }: ChatProps) => {
         toast.success("Metadata loaded successfully");
       } catch (error) {
         toast.error("Failed to parse metadata file");
+      } finally {
+        // Reset input value
+        if (metadataInputRef.current) {
+          metadataInputRef.current.value = "";
+        }
       }
     }
   };
@@ -294,6 +309,8 @@ Provide detailed insights about:
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    // Store current uploaded image to check later if we should clear it
+    const currentUploadedImage = uploadedImage;
     setIsProcessing(true);
     setIsPipelineComplete(false);
     setShowLogs(false);
@@ -475,6 +492,12 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
           analysisData: analysisData || undefined,
         },
       ]);
+      
+      // Clear uploaded image after successful response
+      if (currentUploadedImage === uploadedImage) {
+        setUploadedImage(null);
+        setUploadedImageName("");
+      }
     } catch (error: any) {
       // Check if it was aborted
       if (error.name === "AbortError") {
@@ -517,6 +540,9 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    // Don't clear uploaded image yet - keep it visible during processing
+    const currentUploadedImage = uploadedImage;
+    const currentUploadedImageName = uploadedImageName;
     setIsProcessing(true);
     setIsPipelineComplete(false);
     setShowLogs(false);
@@ -747,8 +773,7 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
       setAnalysisProgress(0);
       // Keep heatmap visible - don't auto-hide it
       // User can start a new query to hide it
-      setUploadedImage(null);
-      setUploadedImageName("");
+      // Image is now cleared in the success path, not in finally
     }
   };
 
@@ -764,7 +789,7 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
           }}
         />
       ) : (
-        <div className="relative min-h-[calc(100vh-4rem)] bg-background overflow-hidden flex flex-col" suppressHydrationWarning={true}>
+        <div className="relative h-screen bg-background overflow-hidden flex flex-col">
           {/* Grid Pattern Overlay - Theme Aware */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.1)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
 
@@ -777,7 +802,7 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
             />
           </div>
 
-          <div className="relative z-10 flex-1 flex flex-col max-w-[1800px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
+          <div className="relative z-10 flex flex-col h-full max-w-[1800px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 flex-shrink-0">
               <div>
@@ -867,7 +892,7 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
               </Card>
             )}
 
-            <div className="grid lg:grid-cols-12 gap-4 flex-1 min-h-0">
+            <div className="grid lg:grid-cols-12 gap-4 flex-1 overflow-hidden">
               {/* Left: Architecture & Metadata */}
               <div className="hidden lg:flex lg:col-span-2 flex-col gap-4 overflow-y-auto pr-1">
                 <ArchitectureViz isProcessing={isProcessing} />
@@ -875,10 +900,10 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
               </div>
 
               {/* Center: Chat */}
-              <div className="lg:col-span-5 col-span-12 flex flex-col min-h-[600px] lg:min-h-0 gap-4">
-                <Card className="flex-1 bg-card/50 backdrop-blur-sm border-border overflow-hidden flex flex-col shadow-sm">
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+              <div className="lg:col-span-5 col-span-12 flex flex-col h-full gap-4">
+                <Card className="flex-1 bg-card/50 backdrop-blur-sm border-border flex flex-col shadow-sm overflow-hidden">
+                  {/* Messages - Scrollable */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.length === 0 && (
                       <div className="text-center text-muted-foreground py-12">
                         <div className="bg-muted/50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
@@ -971,8 +996,8 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Input */}
-                  <div className="border-t border-border p-4 bg-card/30 backdrop-blur-md flex-shrink-0">
+                  {/* Input - Fixed at bottom */}
+                  <div className="relative z-10 border-t border-border p-4 bg-card backdrop-blur-md flex-shrink-0">
                     {uploadedImage && (
                       <ImagePreview
                         imageUrl={uploadedImage}

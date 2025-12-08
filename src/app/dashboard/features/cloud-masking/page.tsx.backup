@@ -1,0 +1,376 @@
+"use client";
+
+import { useState } from "react";
+import CloudMasking from "@/features/cloud-masking/components/CloudMasking";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Upload, ArrowLeft, CloudOff, Info, Server, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { cloudMaskService } from "@/lib/cloud-mask-service";
+
+export default function CloudMaskingPage() {
+  const router = useRouter();
+  const [uploadedImage, setUploadedImage] = useState<{ url: string; label: string } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [backendUrl, setBackendUrl] = useState(
+    typeof window !== "undefined"
+      ? localStorage.getItem("cloud_mask_backend_url") || "http://localhost:8000"
+      : "http://localhost:8000"
+  );
+  const [showSettings, setShowSettings] = useState(false);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [serviceStatus, setServiceStatus] = useState<{
+    available: boolean;
+    message?: string;
+  } | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type - accept common image formats including TIFF
+      const validTypes = [
+        "image/jpeg",
+        "image/jpg", 
+        "image/png",
+        "image/tiff",
+        "image/tif",
+        "image/x-tiff",
+        "image/webp",
+        "image/bmp"
+      ];
+      
+      const fileExtension = file.name.toLowerCase().split('.').pop();
+      const isValidType = validTypes.includes(file.type) || 
+                         ['tif', 'tiff', 'jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(fileExtension || '');
+      
+      if (!isValidType && !file.type.startsWith("image/")) {
+        toast.error("Please upload a valid image file (PNG, JPEG, TIFF, etc.)");
+        return;
+      }
+
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Image size must be less than 10MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
+        setUploadedImage({
+          url: imageUrl,
+          label: file.name,
+        });
+        setIsProcessing(true);
+        toast.success("Image uploaded successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCheckHealth = async () => {
+    setIsCheckingHealth(true);
+    try {
+      const health = await cloudMaskService.checkServiceHealth();
+      setServiceStatus(health);
+      
+      if (health.available) {
+        toast.success("Backend service is available!", {
+          description: health.message,
+        });
+      } else {
+        toast.error("Backend service is not available", {
+          description: health.message,
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to check service health");
+      setServiceStatus({
+        available: false,
+        message: "Cannot connect to service",
+      });
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
+
+  const handleSaveSettings = () => {
+    cloudMaskService.updateConfig({ backendUrl });
+    toast.success("Settings saved!");
+    setShowSettings(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {isProcessing && uploadedImage ? (
+        <CloudMasking
+          image={uploadedImage}
+          onClose={() => {
+            setIsProcessing(false);
+            setUploadedImage(null);
+          }}
+        />
+      ) : (
+        <div className="container mx-auto px-4 py-12">
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/dashboard")}
+            className="mb-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="inline-flex p-4 bg-primary/10 rounded-2xl mb-4">
+                <CloudOff className="w-12 h-12 text-primary" />
+              </div>
+              <h1 className="text-4xl font-bold mb-4">Cloud Masking</h1>
+              <p className="text-muted-foreground mb-4">
+                Automated cloud detection and removal from satellite imagery
+              </p>
+              <Badge variant="outline" className="text-xs">
+                Powered by Backend AI Service
+              </Badge>
+            </div>
+
+            {/* Settings Card */}
+            {showSettings && (
+              <Card className="p-6 mb-6 border-primary">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      Backend Configuration
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Configure the cloud masking backend service URL
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSettings(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Backend URL
+                    </label>
+                    <input
+                      type="text"
+                      value={backendUrl}
+                      onChange={(e) => setBackendUrl(e.target.value)}
+                      placeholder="http://localhost:8000"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The URL where your cloud masking backend is running
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveSettings} className="flex-1">
+                      Save Settings
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCheckHealth}
+                      disabled={isCheckingHealth}
+                    >
+                      {isCheckingHealth ? "Checking..." : "Test Connection"}
+                    </Button>
+                  </div>
+
+                  {serviceStatus && (
+                    <div
+                      className={`p-3 rounded-lg border ${
+                        serviceStatus.available
+                          ? "bg-green-500/10 border-green-500/30"
+                          : "bg-red-500/10 border-red-500/30"
+                      }`}
+                    >
+                      <p
+                        className={`text-sm font-medium ${
+                          serviceStatus.available
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {serviceStatus.available ? "✓ Service Available" : "✗ Service Unavailable"}
+                      </p>
+                      {serviceStatus.message && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {serviceStatus.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Info Card */}
+            <Card className="p-4 mb-6 bg-blue-500/5 border-blue-500/20">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold mb-2">About Cloud Masking</h3>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Upload a satellite or aerial image for processing</li>
+                    <li>• Backend service will detect and mask cloud cover</li>
+                    <li>• View side-by-side comparison of original vs masked images</li>
+                    <li>• Download the cloud-masked image for further analysis</li>
+                    <li>• Supports PNG, JPEG, and other common image formats</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+
+            {/* Backend Status */}
+            <Card className="p-4 mb-6 bg-muted/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Server className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Backend Service</p>
+                    <p className="text-xs text-muted-foreground">{backendUrl}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSettings(!showSettings)}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configure
+                </Button>
+              </div>
+            </Card>
+
+            {/* Upload Area */}
+            <Card className="p-8 border-2 border-dashed border-border hover:border-primary/50 transition-colors mb-6">
+              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                Upload a satellite image for cloud masking
+              </p>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/tiff,image/tif,image/webp,image/bmp,.png,.jpg,.jpeg,.tif,.tiff,.webp,.bmp"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="cloud-mask-image-upload"
+              />
+              <label htmlFor="cloud-mask-image-upload" className="block text-center">
+                <Button asChild>
+                  <span>Choose Image</span>
+                </Button>
+              </label>
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                Supported formats: PNG, JPEG, TIFF • Max size: 10MB
+              </p>
+            </Card>
+
+            {/* API Integration Info */}
+            <Card className="p-6 bg-card border-border">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Server className="w-5 h-5" />
+                API Integration Details
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Endpoint</h4>
+                  <code className="text-xs bg-muted px-3 py-2 rounded block">
+                    POST {backendUrl}/cloud-mask
+                  </code>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Request Payload</h4>
+                  <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
+{`{
+  "image": "base64_encoded_image_data",
+  "format": "base64",
+  "threshold": 0.5,
+  "metadata": {
+    "filename": "satellite_image.jpg",
+    "timestamp": "2025-12-08T10:30:00Z"
+  }
+}`}
+                  </pre>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Expected Response</h4>
+                  <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
+{`{
+  "maskedImage": "base64_encoded_masked_image",
+  "cloudCoverage": 25.5,
+  "processingTime": 1234,
+  "maskData": {
+    "cloudPixels": 150000,
+    "totalPixels": 589824,
+    "cloudPercentage": 25.5
+  },
+  "metadata": {
+    "originalSize": { "width": 768, "height": 768 },
+    "maskedSize": { "width": 768, "height": 768 },
+    "detectionMethod": "ML Model v2"
+  }
+}`}
+                  </pre>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Health Check Endpoint</h4>
+                  <code className="text-xs bg-muted px-3 py-2 rounded block mb-2">
+                    GET {backendUrl}/health
+                  </code>
+                  <p className="text-xs text-muted-foreground">
+                    Returns service status and version information
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <h4 className="text-sm font-semibold mb-2">Request Headers</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Content-Type: application/json</li>
+                    <li>• Accept: application/json</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Error Handling</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• 400: Invalid request payload or image format</li>
+                    <li>• 500: Internal server error during processing</li>
+                    <li>• 503: Service unavailable or timeout</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mb-1">
+                    Backend Setup Required
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This feature requires a running backend service. Make sure your cloud masking 
+                    API is deployed and accessible at the configured URL.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

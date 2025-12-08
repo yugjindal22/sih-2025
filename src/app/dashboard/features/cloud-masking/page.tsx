@@ -5,14 +5,14 @@ import CloudMasking from "@/features/cloud-masking/components/CloudMasking";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Upload, ArrowLeft, CloudOff, Info, Server, Settings } from "lucide-react";
+import { Upload, ArrowLeft, CloudOff, Info, Server, Settings, FileArchive, CheckCircle2, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cloudMaskService } from "@/lib/cloud-mask-service";
 
 export default function CloudMaskingPage() {
   const router = useRouter();
-  const [uploadedImage, setUploadedImage] = useState<{ url: string; label: string } | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backendUrl, setBackendUrl] = useState(
     typeof window !== "undefined"
@@ -26,31 +26,33 @@ export default function CloudMaskingPage() {
     message?: string;
   } | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please upload an image file");
+      // Validate file type - must be .zip
+      if (!file.name.endsWith('.zip')) {
+        toast.error("Please upload a .zip file");
         return;
       }
 
-      // Check file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("Image size must be less than 10MB");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        setUploadedImage({
-          url: imageUrl,
-          label: file.name,
+      // Validate SAFE format naming
+      const safePattern = /S2[AB]_MSIL2A_\d{8}T\d{6}_N\d{4}_R\d{3}_T\w+\.SAFE\.zip/;
+      if (!safePattern.test(file.name)) {
+        toast.error("Invalid SAFE format", {
+          description: "Expected: S2A_MSIL2A_YYYYMMDDTHHMMSS_NXXXX_RXXX_TXXXXX.SAFE.zip",
         });
-        setIsProcessing(true);
-        toast.success("Image uploaded successfully!");
-      };
-      reader.readAsDataURL(file);
+        return;
+      }
+
+      // Check file size (max 500MB for SAFE files)
+      if (file.size > 500 * 1024 * 1024) {
+        toast.error("File size must be less than 500MB");
+        return;
+      }
+
+      setUploadedFile(file);
+      setIsProcessing(true);
+      toast.success("SAFE file uploaded successfully!");
     }
   };
 
@@ -88,12 +90,12 @@ export default function CloudMaskingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {isProcessing && uploadedImage ? (
+      {isProcessing && uploadedFile ? (
         <CloudMasking
-          image={uploadedImage}
+          safeFile={uploadedFile}
           onClose={() => {
             setIsProcessing(false);
-            setUploadedImage(null);
+            setUploadedFile(null);
           }}
         />
       ) : (
@@ -113,13 +115,18 @@ export default function CloudMaskingPage() {
               <div className="inline-flex p-4 bg-primary/10 rounded-2xl mb-4">
                 <CloudOff className="w-12 h-12 text-primary" />
               </div>
-              <h1 className="text-4xl font-bold mb-4">Cloud Masking</h1>
+              <h1 className="text-4xl font-bold mb-4">Cloud Masking - Sentinel-2</h1>
               <p className="text-muted-foreground mb-4">
-                Automated cloud detection and removal from satellite imagery
+                Automated cloud detection and removal using s2cloudless
               </p>
-              <Badge variant="outline" className="text-xs">
-                Powered by Backend AI Service
-              </Badge>
+              <div className="flex gap-2 justify-center">
+                <Badge variant="outline" className="text-xs">
+                  Sentinel-2 L2A SAFE Format
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  s2cloudless Model
+                </Badge>
+              </div>
             </div>
 
             {/* Settings Card */}
@@ -132,7 +139,7 @@ export default function CloudMaskingPage() {
                       Backend Configuration
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Configure the cloud masking backend service URL
+                      Configure the backend API endpoint URL
                     </p>
                   </div>
                   <Button
@@ -150,208 +157,160 @@ export default function CloudMaskingPage() {
                       Backend URL
                     </label>
                     <input
-                      type="text"
+                      type="url"
                       value={backendUrl}
                       onChange={(e) => setBackendUrl(e.target.value)}
+                      className="w-full px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                       placeholder="http://localhost:8000"
-                      className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      The URL where your cloud masking backend is running
+                      Default: http://localhost:8000
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button onClick={handleSaveSettings} className="flex-1">
-                      Save Settings
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCheckHealth}
-                      disabled={isCheckingHealth}
-                    >
-                      {isCheckingHealth ? "Checking..." : "Test Connection"}
-                    </Button>
-                  </div>
-
-                  {serviceStatus && (
-                    <div
-                      className={`p-3 rounded-lg border ${
-                        serviceStatus.available
-                          ? "bg-green-500/10 border-green-500/30"
-                          : "bg-red-500/10 border-red-500/30"
-                      }`}
-                    >
-                      <p
-                        className={`text-sm font-medium ${
-                          serviceStatus.available
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
-                        }`}
-                      >
-                        {serviceStatus.available ? "✓ Service Available" : "✗ Service Unavailable"}
-                      </p>
-                      {serviceStatus.message && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {serviceStatus.message}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <Button onClick={handleSaveSettings} className="w-full">
+                    Save Configuration
+                  </Button>
                 </div>
               </Card>
             )}
 
-            {/* Info Card */}
-            <Card className="p-4 mb-6 bg-blue-500/5 border-blue-500/20">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold mb-2">About Cloud Masking</h3>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Upload a satellite or aerial image for processing</li>
-                    <li>• Backend service will detect and mask cloud cover</li>
-                    <li>• View side-by-side comparison of original vs masked images</li>
-                    <li>• Download the cloud-masked image for further analysis</li>
-                    <li>• Supports PNG, JPEG, and other common image formats</li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
-
-            {/* Backend Status */}
-            <Card className="p-4 mb-6 bg-muted/50">
-              <div className="flex items-center justify-between">
+            {/* Service Status Card */}
+            {serviceStatus && (
+              <Card className="p-4 mb-6 border-primary/50">
                 <div className="flex items-center gap-3">
-                  <Server className="w-5 h-5 text-muted-foreground" />
+                  {serviceStatus.available ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                  )}
                   <div>
-                    <p className="text-sm font-medium">Backend Service</p>
-                    <p className="text-xs text-muted-foreground">{backendUrl}</p>
+                    <p className="text-sm font-medium">
+                      {serviceStatus.available ? "Service Online" : "Service Offline"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {serviceStatus.message}
+                    </p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSettings(!showSettings)}
+              </Card>
+            )}
+
+            {/* Upload Card */}
+            <Card className="p-8">
+              <div className="flex flex-col items-center justify-center">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <FileArchive className="w-10 h-10 text-primary" />
+                </div>
+                <h2 className="text-2xl font-semibold mb-2">Upload Sentinel-2 SAFE File</h2>
+                <p className="text-muted-foreground mb-8 text-center max-w-md">
+                  Upload a Sentinel-2 L2A SAFE format .zip file for cloud masking
+                </p>
+
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                 >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configure
-                </Button>
+                  <Upload className="w-5 h-5 mr-2" />
+                  Select SAFE File
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept=".zip"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
+                <p className="text-xs text-muted-foreground mt-4">
+                  Max file size: 500MB
+                </p>
               </div>
             </Card>
 
-            {/* Upload Area */}
-            <Card className="p-8 border-2 border-dashed border-border hover:border-primary/50 transition-colors mb-6">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                Upload a satellite image for cloud masking
-              </p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="cloud-mask-image-upload"
-              />
-              <label htmlFor="cloud-mask-image-upload" className="block text-center">
-                <Button asChild>
-                  <span>Choose Image</span>
-                </Button>
-              </label>
-              <p className="text-xs text-muted-foreground mt-4 text-center">
-                Supported formats: PNG, JPEG, TIFF • Max size: 10MB
-              </p>
-            </Card>
+            {/* Quick Actions */}
+            <div className="mt-6 flex gap-4 justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowSettings(!showSettings)}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCheckHealth}
+                disabled={isCheckingHealth}
+              >
+                <Server className="w-4 h-4 mr-2" />
+                {isCheckingHealth ? "Checking..." : "Check Service"}
+              </Button>
+            </div>
 
-            {/* API Integration Info */}
-            <Card className="p-6 bg-card border-border">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Server className="w-5 h-5" />
-                API Integration Details
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Endpoint</h4>
-                  <code className="text-xs bg-muted px-3 py-2 rounded block">
-                    POST {backendUrl}/cloud-mask
-                  </code>
+            {/* Info Section */}
+            <Card className="mt-8 p-6 bg-card/50">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Info className="w-5 h-5 text-blue-500" />
                 </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-3">
+                    SAFE Format Requirements
+                  </h3>
+                  <div className="space-y-4 text-sm text-muted-foreground">
+                    <div>
+                      <p className="font-medium text-foreground mb-1">File Naming:</p>
+                      <code className="text-xs bg-muted px-2 py-1 rounded">
+                        S2A_MSIL2A_20240714T082601_N0509_R021_T36LYH.SAFE.zip
+                      </code>
+                    </div>
 
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Request Payload</h4>
-                  <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
-{`{
-  "image": "base64_encoded_image_data",
-  "format": "base64",
-  "threshold": 0.5,
-  "metadata": {
-    "filename": "satellite_image.jpg",
-    "timestamp": "2025-12-08T10:30:00Z"
-  }
-}`}
-                  </pre>
-                </div>
+                    <div>
+                      <p className="font-medium text-foreground mb-1">Required Structure:</p>
+                      <pre className="text-xs bg-muted p-3 rounded leading-relaxed">
+{`.SAFE/
+  └── GRANULE/
+        └── <GRANULE_ID>/
+              └── IMG_DATA/
+                      └── R10m/*.jp2   (B02, B03, B04, B08)`}
+                      </pre>
+                    </div>
 
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Expected Response</h4>
-                  <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
-{`{
-  "maskedImage": "base64_encoded_masked_image",
-  "cloudCoverage": 25.5,
-  "processingTime": 1234,
-  "maskData": {
-    "cloudPixels": 150000,
-    "totalPixels": 589824,
-    "cloudPercentage": 25.5
-  },
-  "metadata": {
-    "originalSize": { "width": 768, "height": 768 },
-    "maskedSize": { "width": 768, "height": 768 },
-    "detectionMethod": "ML Model v2"
-  }
-}`}
-                  </pre>
-                </div>
+                    <div>
+                      <p className="font-medium text-foreground mb-1">Outputs Generated:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li><strong>Clean RGB:</strong> Cloud-removed true color composite</li>
+                        <li><strong>Cloud Mask:</strong> Binary mask (255=cloud, 0=clear)</li>
+                        <li><strong>Cloud Probability:</strong> Likelihood heatmap (0-1)</li>
+                      </ul>
+                    </div>
 
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Health Check Endpoint</h4>
-                  <code className="text-xs bg-muted px-3 py-2 rounded block mb-2">
-                    GET {backendUrl}/health
-                  </code>
-                  <p className="text-xs text-muted-foreground">
-                    Returns service status and version information
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-border">
-                  <h4 className="text-sm font-semibold mb-2">Request Headers</h4>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Content-Type: application/json</li>
-                    <li>• Accept: application/json</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Error Handling</h4>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• 400: Invalid request payload or image format</li>
-                    <li>• 500: Internal server error during processing</li>
-                    <li>• 503: Service unavailable or timeout</li>
-                  </ul>
-                </div>
-
-                <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400 mb-1">
-                    Backend Setup Required
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    This feature requires a running backend service. Make sure your cloud masking 
-                    API is deployed and accessible at the configured URL.
-                  </p>
+                    <div>
+                      <p className="font-medium text-foreground mb-1">Processing Pipeline:</p>
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Extract SAFE zip file</li>
+                        <li>Load B02, B03, B04, B08 bands (10m resolution)</li>
+                        <li>Normalize reflectance values</li>
+                        <li>Run s2cloudless cloud probability model</li>
+                        <li>Apply threshold to generate binary mask</li>
+                        <li>Create cloud-removed RGB composite</li>
+                        <li>Convert outputs to Base64 PNG format</li>
+                      </ol>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>
+
+            {/* API Documentation Link */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                For backend implementation, see{" "}
+                <code className="bg-muted px-2 py-1 rounded text-xs">
+                  src/features/cloud-masking/README.md
+                </code>
+              </p>
+            </div>
           </div>
         </div>
       )}

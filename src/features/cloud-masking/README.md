@@ -1,540 +1,536 @@
-# Cloud Masking Feature
+# Cloud Masking Feature - Sentinel-2 SAFE Format
 
 ## Overview
-The Cloud Masking feature provides automated cloud detection and removal from satellite imagery through integration with a backend AI service. It enables users to process cloudy satellite images and obtain clean, cloud-free versions for better Earth observation analysis.
 
-## Features
+This feature implements automated cloud detection and removal for Sentinel-2 L2A satellite imagery using the **s2cloudless** model. The system processes Sentinel-2 SAFE format files and generates three outputs:
+- **Clean RGB**: Cloud-removed true color composite
+- **Cloud Mask**: Binary mask (255=cloud, 0=clear sky)
+- **Cloud Probability**: Continuous probability heatmap
 
-### 1. **Backend API Integration**
-- Connects to external cloud masking service via REST API
-- Configurable backend URL
-- Health check functionality
-- Timeout handling and error recovery
-- Request/response validation
+## API Specification
 
-### 2. **Image Processing**
-- Upload satellite/aerial images (PNG, JPEG, TIFF)
-- Automatic cloud detection using backend ML models
-- Cloud coverage percentage calculation
-- High-quality masked image generation
-- Processing time tracking
-
-### 3. **Interactive Comparison**
-- Side-by-side original vs masked view
-- Slider-based comparison tool
-- Toggle between original and masked images
-- Full-screen image viewer
-
-### 4. **Results & Analytics**
-- Cloud coverage percentage with severity levels
-- Processing statistics (time, pixels, method)
-- Image dimensions and metadata
-- Coverage classification (Clear, Partly Cloudy, Mostly Cloudy, Overcast)
-
-### 5. **Export Functionality**
-- Download cloud-masked images
-- Preserve original image quality
-- Base64 encoded output
-
-## Backend API Integration
-
-### API Endpoint
-
-**POST** `/cloud-mask`
+### Endpoint
+```
+POST /cloud-mask
+Content-Type: multipart/form-data
+```
 
 ### Request Format
 
-```json
-{
-  "image": "base64_encoded_image_data",
-  "format": "base64",
-  "threshold": 0.5,
-  "metadata": {
-    "filename": "satellite_image.jpg",
-    "timestamp": "2025-12-08T10:30:00Z"
-  }
-}
+#### Form Data Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `safe_zip` | File | Yes | Sentinel-2 L2A SAFE format .zip file |
+| `threshold` | float | No | Cloud detection threshold (0-1), default: 0.4 |
+
+#### SAFE File Naming Convention
+```
+S2A_MSIL2A_YYYYMMDDTHHMMSS_NXXXX_RXXX_TXXXXX.SAFE.zip
 ```
 
-#### Request Parameters
+Example:
+```
+S2A_MSIL2A_20240714T082601_N0509_R021_T36LYH.SAFE.zip
+```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `image` | string | Yes | Base64 encoded image data (without data URI prefix) |
-| `format` | string | No | Response format preference: "base64" (default) or "url" |
-| `threshold` | number | No | Cloud detection threshold (0-1), default: 0.5 |
-| `metadata` | object | No | Optional metadata object |
-| `metadata.filename` | string | No | Original filename |
-| `metadata.timestamp` | string | No | ISO 8601 timestamp |
+Pattern breakdown:
+- `S2A/S2B`: Sentinel-2A or Sentinel-2B satellite
+- `MSIL2A`: Processing level (L2A = Bottom-of-Atmosphere)
+- `YYYYMMDDTHHMMSS`: Acquisition timestamp
+- `NXXXX`: Processing baseline number
+- `RXXX`: Relative orbit number
+- `TXXXXX`: Tile identifier (MGRS reference)
+
+#### Required SAFE Structure
+```
+.SAFE/
+  └── GRANULE/
+        └── <GRANULE_ID>/
+              └── IMG_DATA/
+                      └── R10m/
+                            ├── *_B02_10m.jp2   (Blue band)
+                            ├── *_B03_10m.jp2   (Green band)
+                            ├── *_B04_10m.jp2   (Red band)
+                            └── *_B08_10m.jp2   (NIR band)
+```
 
 ### Response Format
 
 ```json
 {
-  "maskedImage": "base64_encoded_masked_image_data",
-  "cloudCoverage": 25.5,
-  "processingTime": 1234,
-  "maskData": {
-    "cloudPixels": 150000,
-    "totalPixels": 589824,
-    "cloudPercentage": 25.5
-  },
-  "metadata": {
-    "originalSize": {
-      "width": 768,
-      "height": 768
-    },
-    "maskedSize": {
-      "width": 768,
-      "height": 768
-    },
-    "detectionMethod": "ML Model v2"
-  }
+  "cloud_mask": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+  "cloud_prob": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+  "clean_rgb": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+  "cloud_percent": 23.45,
+  "success": true,
+  "processingTimeMs": 18120
 }
 ```
 
 #### Response Fields
-
 | Field | Type | Description |
 |-------|------|-------------|
-| `maskedImage` | string | Base64 encoded cloud-masked image |
-| `cloudCoverage` | number | Percentage of cloud coverage (0-100) |
-| `processingTime` | number | Processing time in milliseconds |
-| `maskData` | object | Detailed mask statistics |
-| `maskData.cloudPixels` | number | Number of cloud pixels detected |
-| `maskData.totalPixels` | number | Total pixels in image |
-| `maskData.cloudPercentage` | number | Cloud percentage (same as cloudCoverage) |
-| `metadata` | object | Processing metadata |
-| `metadata.originalSize` | object | Original image dimensions |
-| `metadata.maskedSize` | object | Masked image dimensions |
-| `metadata.detectionMethod` | string | Detection algorithm used |
+| `cloud_mask` | string | Base64-encoded PNG - Binary mask (255=cloud, 0=clear) |
+| `cloud_prob` | string | Base64-encoded PNG - Probability heatmap |
+| `clean_rgb` | string | Base64-encoded PNG - Cloud-removed RGB composite |
+| `cloud_percent` | float | Percentage of scene covered by clouds (0-100) |
+| `success` | boolean | Processing success status |
+| `processingTimeMs` | integer | Total processing time in milliseconds |
 
-### Health Check Endpoint
-
-**GET** `/health`
-
-#### Response Format
+### Error Response
 
 ```json
 {
-  "status": "healthy",
-  "version": "1.0.0",
-  "message": "Cloud masking service is operational"
+  "success": false,
+  "error": "Error message description",
+  "processingTimeMs": 0
 }
 ```
 
-### Error Responses
+## Backend Implementation Guide
 
-#### 400 Bad Request
-```json
-{
-  "error": "Invalid image format",
-  "message": "Image data must be valid base64 encoded"
-}
-```
+### Python FastAPI Implementation
 
-#### 500 Internal Server Error
-```json
-{
-  "error": "Processing failed",
-  "message": "Cloud detection algorithm encountered an error"
-}
-```
-
-#### 503 Service Unavailable
-```json
-{
-  "error": "Service unavailable",
-  "message": "Backend service is temporarily down"
-}
-```
-
-## Technical Implementation
-
-### Architecture
-
-```
-Frontend (Next.js)
-    ↓
-CloudMaskService (lib/cloud-mask-service.ts)
-    ↓
-Backend API (/cloud-mask endpoint)
-    ↓
-ML Cloud Detection Model
-    ↓
-Masked Image Response
-```
-
-### File Structure
-
-```
-src/
-├── lib/
-│   └── cloud-mask-service.ts          # API service layer
-├── app/dashboard/features/cloud-masking/
-│   └── page.tsx                       # Upload interface
-└── features/cloud-masking/
-    └── components/
-        └── CloudMasking.tsx           # Main component
-```
-
-### Service Layer (`cloud-mask-service.ts`)
-
-The `CloudMaskService` provides:
-- Centralized API communication
-- Request/response handling
-- Error management
-- Configuration management
-- Health checking
-
-#### Key Methods
-
-```typescript
-// Single image processing
-await cloudMaskService.maskClouds({
-  image: base64Image,
-  threshold: 0.5,
-  metadata: { filename: "image.jpg" }
-});
-
-// Batch processing
-await cloudMaskService.maskCloudsBatch([
-  { image: base64Image1 },
-  { image: base64Image2 }
-]);
-
-// Health check
-await cloudMaskService.checkServiceHealth();
-
-// Update configuration
-cloudMaskService.updateConfig({
-  backendUrl: "http://your-backend:8000"
-});
-```
-
-## Configuration
-
-### Environment Variables
-
-Add to your `.env.local`:
-
+#### Required Dependencies
 ```bash
-NEXT_PUBLIC_CLOUD_MASK_API_URL=http://localhost:8000
+pip install fastapi uvicorn rasterio numpy Pillow s2cloudless sentinelhub python-multipart
 ```
 
-### Runtime Configuration
-
-Users can configure the backend URL through the UI:
-1. Navigate to Cloud Masking feature
-2. Click "Configure" button
-3. Enter backend URL
-4. Test connection
-5. Save settings
-
-Settings are persisted in localStorage.
-
-## Usage Guide
-
-### Step 1: Start Backend Service
-
-Ensure your cloud masking backend is running:
-
-```bash
-# Example backend startup
-cd backend
-python main.py  # or your specific command
-```
-
-The backend should be accessible at the configured URL (default: `http://localhost:8000`)
-
-### Step 2: Configure Frontend
-
-1. Open the Cloud Masking feature
-2. Click "Configure" to set backend URL
-3. Click "Test Connection" to verify
-4. Save settings
-
-### Step 3: Process Images
-
-1. Click "Choose Image" to upload a satellite image
-2. Wait for processing to complete
-3. View results with cloud coverage statistics
-4. Use slider to compare original vs masked
-5. Download masked image if needed
-
-### Step 4: Analyze Results
-
-- **Cloud Coverage**: Percentage of image covered by clouds
-- **Processing Time**: How long the backend took
-- **Coverage Level**: Clear, Partly Cloudy, Mostly Cloudy, or Overcast
-- **Pixel Statistics**: Detailed cloud vs total pixel counts
-
-## Backend Requirements
-
-### Minimal Backend Implementation
-
-Your backend should implement these endpoints:
+#### Complete Implementation
 
 ```python
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import base64
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import rasterio
+from rasterio.windows import Window
+import numpy as np
 from PIL import Image
 import io
+import base64
+import zipfile
+import tempfile
+import os
+from pathlib import Path
+from s2cloudless import S2PixelCloudDetector
+import time
+from typing import Optional
 
-app = FastAPI()
+app = FastAPI(title="Sentinel-2 Cloud Masking API")
 
-class CloudMaskRequest(BaseModel):
-    image: str
-    format: str = "base64"
-    threshold: float = 0.5
-    metadata: dict = {}
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize s2cloudless detector
+cloud_detector = S2PixelCloudDetector(
+    threshold=0.4,
+    average_over=4,
+    dilation_size=2,
+    all_bands=False
+)
+
+
+def find_granule_path(safe_dir: Path) -> Optional[Path]:
+    """Find the GRANULE/*/IMG_DATA/R10m path in SAFE structure"""
+    granule_dir = safe_dir / "GRANULE"
+    if not granule_dir.exists():
+        return None
+    
+    granules = list(granule_dir.iterdir())
+    if not granules:
+        return None
+    
+    img_data_path = granules[0] / "IMG_DATA" / "R10m"
+    if img_data_path.exists():
+        return img_data_path
+    return None
+
+
+def load_band(img_data_path: Path, band_name: str) -> np.ndarray:
+    """Load a single band from JP2 file"""
+    band_files = list(img_data_path.glob(f"*_{band_name}_10m.jp2"))
+    if not band_files:
+        raise ValueError(f"Band {band_name} not found in {img_data_path}")
+    
+    with rasterio.open(band_files[0]) as src:
+        band_data = src.read(1)
+    return band_data
+
+
+def normalize_reflectance(band_data: np.ndarray, quantification_value: float = 10000.0) -> np.ndarray:
+    """Normalize reflectance values to 0-1 range"""
+    return np.clip(band_data / quantification_value, 0, 1)
+
+
+def create_rgb_composite(blue: np.ndarray, green: np.ndarray, red: np.ndarray) -> np.ndarray:
+    """Create RGB composite image"""
+    rgb = np.stack([red, green, blue], axis=-1)
+    rgb = (rgb * 255).astype(np.uint8)
+    return rgb
+
+
+def array_to_base64_png(array: np.ndarray) -> str:
+    """Convert numpy array to base64-encoded PNG"""
+    # Handle grayscale vs RGB
+    if array.ndim == 2:
+        img = Image.fromarray(array, mode='L')
+    else:
+        img = Image.fromarray(array, mode='RGB')
+    
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    b64_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    return f"data:image/png;base64,{b64_string}"
+
+
+def apply_cloud_mask_to_rgb(rgb: np.ndarray, cloud_mask: np.ndarray, fill_color: tuple = (50, 50, 50)) -> np.ndarray:
+    """Apply cloud mask to RGB composite, replacing clouds with fill color"""
+    masked_rgb = rgb.copy()
+    cloud_pixels = cloud_mask == 255
+    
+    for i in range(3):
+        masked_rgb[:, :, i][cloud_pixels] = fill_color[i]
+    
+    return masked_rgb
+
 
 @app.post("/cloud-mask")
-async def mask_clouds(request: CloudMaskRequest):
+async def mask_clouds(
+    safe_zip: UploadFile = File(...),
+    threshold: Optional[float] = Form(0.4)
+):
+    """
+    Process Sentinel-2 SAFE format file for cloud masking
+    
+    Args:
+        safe_zip: Sentinel-2 L2A SAFE format .zip file
+        threshold: Cloud detection threshold (0-1), default 0.4
+    
+    Returns:
+        JSON with cloud_mask, cloud_prob, clean_rgb (Base64 PNGs), and statistics
+    """
+    start_time = time.time()
+    
     try:
-        # Decode image
-        image_data = base64.b64decode(request.image)
-        image = Image.open(io.BytesIO(image_data))
+        # Validate filename
+        if not safe_zip.filename.endswith('.SAFE.zip'):
+            raise HTTPException(
+                status_code=400,
+                detail="File must be Sentinel-2 SAFE format (.SAFE.zip)"
+            )
         
-        # TODO: Implement your cloud detection algorithm here
-        # This is where you'd use your ML model
-        masked_image, cloud_coverage = detect_and_mask_clouds(
-            image, 
-            threshold=request.threshold
-        )
-        
-        # Encode result
-        buffer = io.BytesIO()
-        masked_image.save(buffer, format="PNG")
-        masked_base64 = base64.b64encode(buffer.getvalue()).decode()
-        
-        return {
-            "maskedImage": masked_base64,
-            "cloudCoverage": cloud_coverage,
-            "processingTime": 1234,
-            "maskData": {
-                "cloudPixels": int(cloud_coverage * image.width * image.height / 100),
-                "totalPixels": image.width * image.height,
-                "cloudPercentage": cloud_coverage
-            },
-            "metadata": {
-                "originalSize": {"width": image.width, "height": image.height},
-                "maskedSize": {"width": image.width, "height": image.height},
-                "detectionMethod": "Your Model Name"
+        # Create temporary directory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            zip_path = temp_path / safe_zip.filename
+            
+            # Save uploaded file
+            with open(zip_path, 'wb') as f:
+                content = await safe_zip.read()
+                f.write(content)
+            
+            # Extract SAFE zip
+            extract_dir = temp_path / "extracted"
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            
+            # Find SAFE directory
+            safe_dirs = list(extract_dir.glob("*.SAFE"))
+            if not safe_dirs:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No .SAFE directory found in zip file"
+                )
+            
+            safe_dir = safe_dirs[0]
+            
+            # Find IMG_DATA/R10m path
+            img_data_path = find_granule_path(safe_dir)
+            if not img_data_path:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Could not find GRANULE/*/IMG_DATA/R10m structure"
+                )
+            
+            # Load required bands
+            print(f"Loading bands from {img_data_path}")
+            b02 = load_band(img_data_path, "B02")  # Blue
+            b03 = load_band(img_data_path, "B03")  # Green
+            b04 = load_band(img_data_path, "B04")  # Red
+            b08 = load_band(img_data_path, "B08")  # NIR
+            
+            # Normalize reflectance values (S2 L2A uses 10000 as quantification value)
+            b02_norm = normalize_reflectance(b02)
+            b03_norm = normalize_reflectance(b03)
+            b04_norm = normalize_reflectance(b04)
+            b08_norm = normalize_reflectance(b08)
+            
+            # Prepare input for s2cloudless (expects shape: [height, width, bands])
+            s2cloudless_input = np.stack([b02_norm, b03_norm, b04_norm, b08_norm], axis=-1)
+            
+            # Add batch dimension: [1, height, width, bands]
+            s2cloudless_input = np.expand_dims(s2cloudless_input, axis=0)
+            
+            # Run cloud probability model
+            print("Running s2cloudless model...")
+            cloud_detector.threshold = threshold
+            cloud_probs = cloud_detector.get_cloud_probability_maps(s2cloudless_input)[0]
+            
+            # Generate binary cloud mask
+            cloud_mask_binary = cloud_detector.get_cloud_masks(s2cloudless_input)[0]
+            cloud_mask_uint8 = (cloud_mask_binary * 255).astype(np.uint8)
+            
+            # Calculate cloud coverage percentage
+            cloud_percent = (np.sum(cloud_mask_binary) / cloud_mask_binary.size) * 100
+            
+            # Create RGB composite
+            rgb_composite = create_rgb_composite(b02_norm, b03_norm, b04_norm)
+            
+            # Apply cloud mask to create clean RGB
+            clean_rgb = apply_cloud_mask_to_rgb(rgb_composite, cloud_mask_uint8)
+            
+            # Create probability heatmap visualization (0-255 scale)
+            cloud_prob_uint8 = (cloud_probs * 255).astype(np.uint8)
+            
+            # Convert to Base64 PNG
+            cloud_mask_b64 = array_to_base64_png(cloud_mask_uint8)
+            cloud_prob_b64 = array_to_base64_png(cloud_prob_uint8)
+            clean_rgb_b64 = array_to_base64_png(clean_rgb)
+            
+            processing_time_ms = int((time.time() - start_time) * 1000)
+            
+            return {
+                "cloud_mask": cloud_mask_b64,
+                "cloud_prob": cloud_prob_b64,
+                "clean_rgb": clean_rgb_b64,
+                "cloud_percent": round(cloud_percent, 2),
+                "success": True,
+                "processingTimeMs": processing_time_ms
             }
-        }
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error processing SAFE file: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Processing failed: {str(e)}"
+        )
+
 
 @app.get("/health")
 async def health_check():
+    """Health check endpoint"""
     return {
         "status": "healthy",
-        "version": "1.0.0",
-        "message": "Cloud masking service is operational"
+        "message": "Sentinel-2 Cloud Masking Service",
+        "version": "1.0.0"
     }
 
-def detect_and_mask_clouds(image, threshold):
-    # TODO: Implement your cloud detection logic
-    # Return: (masked_image, cloud_coverage_percentage)
-    pass
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-### Deployment Options
+### Running the Backend
 
-1. **Local Development**: Run on localhost:8000
-2. **Docker**: Containerize backend service
-3. **Cloud Deployment**: Deploy to AWS, GCP, Azure
-4. **Kubernetes**: Orchestrate with K8s
+```bash
+# Install dependencies
+pip install fastapi uvicorn rasterio numpy Pillow s2cloudless sentinelhub python-multipart
+
+# Run the server
+python backend.py
+
+# Or with uvicorn directly
+uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Testing the API
+
+```bash
+# Check health
+curl http://localhost:8000/health
+
+# Test cloud masking
+curl -X POST "http://localhost:8000/cloud-mask" \
+  -F "safe_zip=@S2A_MSIL2A_20240714T082601_N0509_R021_T36LYH.SAFE.zip" \
+  -F "threshold=0.4"
+```
+
+## Frontend Usage
+
+### TypeScript/JavaScript Example
+
+```typescript
+import { cloudMaskService } from '@/lib/cloud-mask-service';
+
+// Upload and process SAFE file
+async function processCloudMasking(file: File) {
+  try {
+    const response = await cloudMaskService.maskClouds({
+      safeZip: file,
+      threshold: 0.4
+    });
+
+    // Use the outputs
+    console.log('Cloud coverage:', response.cloud_percent, '%');
+    
+    // Display images
+    document.getElementById('clean-rgb').src = response.clean_rgb;
+    document.getElementById('cloud-mask').src = response.cloud_mask;
+    document.getElementById('cloud-prob').src = response.cloud_prob;
+    
+  } catch (error) {
+    console.error('Cloud masking failed:', error);
+  }
+}
+
+// Check backend health
+async function checkService() {
+  const health = await cloudMaskService.checkServiceHealth();
+  console.log('Service available:', health.available);
+}
+```
+
+## Technical Details
+
+### s2cloudless Model
+
+- **Type**: Gradient Boosting Classifier
+- **Input Bands**: B02 (Blue), B03 (Green), B04 (Red), B08 (NIR)
+- **Resolution**: 10m per pixel
+- **Output**: Cloud probability map (0-1)
+- **Threshold**: Default 0.4 (adjustable 0-1)
+
+### Processing Pipeline
+
+1. **Unzip SAFE file** → Extract to temporary directory
+2. **Locate bands** → Find `GRANULE/*/IMG_DATA/R10m/*.jp2` files
+3. **Load rasters** → Read B02, B03, B04, B08 using rasterio
+4. **Normalize** → Convert DN values to reflectance (0-1)
+5. **Run s2cloudless** → Generate cloud probability map
+6. **Threshold** → Create binary mask (0.4 default)
+7. **Generate outputs**:
+   - Binary mask (255=cloud, 0=clear)
+   - Probability heatmap (0-255)
+   - Cloud-removed RGB (clouds replaced with gray)
+8. **Encode** → Convert to Base64 PNG for transmission
+
+### Performance Considerations
+
+- **File size**: SAFE files typically 50-500MB
+- **Processing time**: 15-30 seconds for typical scene
+- **Memory**: ~2-4GB RAM required
+- **Bands**: Only 10m resolution bands loaded (saves memory)
+
+### Coordinate Reference System
+
+- Sentinel-2 uses UTM projections
+- Tile identifier (e.g., T36LYH) indicates MGRS grid zone
+- All bands in R10m are co-registered at 10m resolution
 
 ## Error Handling
 
-### Frontend Error Handling
+### Common Errors
 
-The service provides comprehensive error handling:
+| Error | Cause | Solution |
+|-------|-------|----------|
+| Invalid SAFE format | Incorrect filename | Use proper S2A_MSIL2A_*.SAFE.zip format |
+| Band not found | Incomplete SAFE file | Ensure B02, B03, B04, B08 exist in R10m/ |
+| Connection refused | Backend not running | Start backend server on port 8000 |
+| Timeout | Large file processing | Increase timeout in frontend config |
+
+### Frontend Error Messages
 
 ```typescript
 try {
-  const result = await cloudMaskService.maskClouds(request);
-  // Success
+  const response = await cloudMaskService.maskClouds({...});
 } catch (error) {
-  // Error cases handled:
-  // - Connection timeout
-  // - Service unavailable
-  // - Invalid response
-  // - Network errors
-}
-```
-
-### User Feedback
-
-- Loading states during processing
-- Success toasts with cloud coverage
-- Error messages with troubleshooting info
-- Connection status indicators
-
-## Performance Considerations
-
-### Image Size Limits
-
-- Max upload size: 10MB
-- Recommended: < 5MB for faster processing
-- Large images may timeout (30s default)
-
-### Optimization Tips
-
-1. **Compress images** before upload
-2. **Use appropriate threshold** (0.3-0.7 range)
-3. **Monitor backend resources**
-4. **Implement caching** on backend
-5. **Use CDN** for static assets
-
-## Troubleshooting
-
-### "Cannot connect to service"
-
-**Solution:**
-1. Check if backend is running
-2. Verify URL in configuration
-3. Check firewall/network settings
-4. Test with curl: `curl http://localhost:8000/health`
-
-### "Request timeout"
-
-**Solution:**
-1. Reduce image size
-2. Increase timeout in config
-3. Optimize backend processing
-4. Check backend logs
-
-### "Invalid response"
-
-**Solution:**
-1. Verify backend response format
-2. Check base64 encoding
-3. Validate JSON structure
-4. Review backend logs
-
-### High cloud coverage warnings
-
-If cloud coverage > 70%, the UI shows a warning suggesting:
-- Use images from different dates
-- Consider temporal fusion
-- Check image quality
-
-## Advanced Features
-
-### Batch Processing
-
-Process multiple images:
-
-```typescript
-const results = await cloudMaskService.maskCloudsBatch([
-  { image: base64Image1, metadata: { filename: "img1.jpg" } },
-  { image: base64Image2, metadata: { filename: "img2.jpg" } }
-]);
-```
-
-### Custom Thresholds
-
-Adjust cloud detection sensitivity:
-
-```typescript
-await cloudMaskService.maskClouds({
-  image: base64Image,
-  threshold: 0.3  // More sensitive (0.0-1.0)
-});
-```
-
-## Integration with Other Features
-
-### Combine with Temporal Fusion
-1. Cloud mask images from different dates
-2. Feed to Temporal Fusion for trend analysis
-3. Cleaner time-series data
-
-### Use with ROI Analysis
-1. Mask clouds first
-2. Analyze specific regions
-3. More accurate ROI metrics
-
-### Enhance Analysis Dashboard
-1. Pre-process images with cloud masking
-2. Improve land cover classification
-3. Better NDVI calculations
-
-## API Payload Examples
-
-### Basic Request
-```json
-{
-  "image": "iVBORw0KGgoAAAANSUhEUgAAA...",
-  "format": "base64"
-}
-```
-
-### Advanced Request
-```json
-{
-  "image": "iVBORw0KGgoAAAANSUhEUgAAA...",
-  "format": "base64",
-  "threshold": 0.6,
-  "metadata": {
-    "filename": "landsat8_scene.tif",
-    "timestamp": "2025-12-08T10:30:00Z",
-    "satellite": "Landsat 8",
-    "sensor": "OLI-TIRS",
-    "location": "28.6139°N, 77.2090°E"
+  if (error.message.includes('timeout')) {
+    // Handle timeout
+  } else if (error.message.includes('Invalid SAFE format')) {
+    // Handle format error
+  } else if (error.message.includes('Cannot connect')) {
+    // Handle connection error
   }
 }
 ```
 
-## Testing
+## Configuration
 
-### Manual Testing
-1. Use sample satellite images
-2. Test various cloud coverage levels
-3. Verify slider functionality
-4. Check download feature
-5. Test error scenarios
+### Frontend Configuration
 
-### API Testing
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Cloud masking
-curl -X POST http://localhost:8000/cloud-mask \
-  -H "Content-Type: application/json" \
-  -d @test_request.json
+```typescript
+// Update backend URL
+cloudMaskService.updateConfig({
+  backendUrl: 'http://your-server:8000',
+  timeout: 60000  // 60 seconds
+});
 ```
 
-## Future Enhancements
+### Backend Configuration
 
-Potential improvements:
-1. Real-time processing progress
-2. Multiple algorithm selection
-3. Custom mask visualization
-4. Batch processing UI
-5. Cloud shadow detection
-6. Terrain masking
-7. Snow/ice detection
-8. Export to GeoTIFF
+```python
+# Adjust s2cloudless parameters
+cloud_detector = S2PixelCloudDetector(
+    threshold=0.4,        # Cloud probability threshold
+    average_over=4,       # Averaging window size
+    dilation_size=2,      # Mask dilation kernel size
+    all_bands=False       # Use only RGB+NIR bands
+)
+```
 
-## Dependencies
+## Data Sources
 
-- `cloudMaskService`: API integration layer
-- UI components: shadcn/ui (Card, Button, etc.)
-- Icons: lucide-react
-- Notifications: sonner
+### Downloading Sentinel-2 Data
 
-## Code Quality
+1. **Copernicus Open Access Hub**: https://scihub.copernicus.eu/
+2. **Google Earth Engine**: Sentinel-2 L2A collection
+3. **AWS S3**: `s3://sentinel-s2-l2a/`
+4. **Microsoft Planetary Computer**: Sentinel-2 Level-2A
 
-✅ TypeScript typed interfaces
-✅ Error handling and validation
-✅ Loading states and user feedback
-✅ Responsive design
-✅ Clean separation of concerns
-✅ Reusable service layer
-✅ Comprehensive API documentation
+### Example Download (sentinelhub)
+
+```python
+from sentinelhub import SHConfig, DataCollection, SentinelHubRequest, BBox, CRS, MimeType
+
+config = SHConfig()
+config.sh_client_id = 'YOUR_CLIENT_ID'
+config.sh_client_secret = 'YOUR_CLIENT_SECRET'
+
+bbox = BBox(bbox=[46.16, -16.15, 46.51, -15.58], crs=CRS.WGS84)
+
+request = SentinelHubRequest(
+    data_collection=DataCollection.SENTINEL2_L2A,
+    bbox=bbox,
+    time=('2024-01-01', '2024-01-31'),
+    config=config
+)
+```
+
+## License
+
+This feature uses:
+- **s2cloudless**: BSD-3-Clause License
+- **rasterio**: BSD License
+- **Sentinel-2 Data**: Free and open (Copernicus)
+
+## Support
+
+For issues or questions:
+- Frontend: Check browser console for errors
+- Backend: Check server logs
+- Model: See [s2cloudless documentation](https://github.com/sentinel-hub/sentinel2-cloud-detector)
+
+---
+
+**Last Updated**: December 8, 2025  
+**Version**: 2.0.0  
+**API Version**: v1

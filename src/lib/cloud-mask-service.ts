@@ -1,32 +1,18 @@
 // Cloud Masking Service - Backend API Integration
-// Handles API calls to the cloud masking backend endpoint
+// Handles API calls to the cloud masking backend endpoint for Sentinel-2 SAFE format
 
 export interface CloudMaskRequest {
-  image: string; // Base64 encoded image data
-  format?: "base64" | "url"; // Response format preference
-  threshold?: number; // Cloud detection threshold (0-1)
-  metadata?: {
-    filename?: string;
-    timestamp?: string;
-    [key: string]: any;
-  };
+  safeZip: File; // Sentinel-2 SAFE format .zip file
+  threshold?: number; // Cloud detection threshold (0-1), default 0.4
 }
 
 export interface CloudMaskResponse {
   success: boolean;
-  maskedImage: string; // Base64 encoded masked image
-  cloudCoverage: number; // Percentage of cloud coverage detected
-  processingTime: number; // Processing time in milliseconds
-  maskData?: {
-    cloudPixels: number;
-    totalPixels: number;
-    cloudPercentage: number;
-  };
-  metadata?: {
-    originalSize: { width: number; height: number };
-    maskedSize: { width: number; height: number };
-    detectionMethod?: string;
-  };
+  cloud_mask: string; // Base64 PNG - Binary mask (255=cloud, 0=clear)
+  cloud_prob: string; // Base64 PNG - Probability heatmap
+  clean_rgb: string; // Base64 PNG - Cloud-removed RGB composite
+  cloud_percent: number; // Percentage of scene masked as cloud
+  processingTimeMs: number; // Processing time in milliseconds
   error?: string;
 }
 
@@ -55,26 +41,38 @@ class CloudMaskService {
   }
 
   /**
-   * Perform cloud masking on an image
-   * @param request Cloud mask request with image data
-   * @returns Promise with masked image and metadata
+   * Perform cloud masking on a Sentinel-2 SAFE format file
+   * @param request Cloud mask request with SAFE zip file
+   * @returns Promise with cloud mask, probability map, and clean RGB
    */
   async maskClouds(request: CloudMaskRequest): Promise<CloudMaskResponse> {
     const startTime = Date.now();
 
     try {
       // Validate input
-      if (!request.image) {
-        throw new Error("Image data is required");
+      if (!request.safeZip) {
+        throw new Error("SAFE zip file is required");
       }
 
-      // Prepare request payload
-      const payload = {
-        image: request.image,
-        format: request.format || "base64",
-        threshold: request.threshold || 0.5,
-        metadata: request.metadata || {},
-      };
+      // Validate file is a .zip
+      if (!request.safeZip.name.endsWith('.zip')) {
+        throw new Error("File must be a .zip archive");
+      }
+
+      // Validate SAFE format naming
+      const safePattern = /S2[AB]_MSIL2A_\d{8}T\d{6}_N\d{4}_R\d{3}_T\w+\.SAFE\.zip/;
+      if (!safePattern.test(request.safeZip.name)) {
+        throw new Error(
+          "Invalid SAFE format. Expected: S2A_MSIL2A_YYYYMMDDTHHMMSS_NXXXX_RXXX_TXXXXX.SAFE.zip"
+        );
+      }
+
+      // Prepare FormData payload
+      const formData = new FormData();
+      formData.append("safe_zip", request.safeZip);
+      if (request.threshold !== undefined) {
+        formData.append("threshold", request.threshold.toString());
+      }
 
       // Make API call with timeout
       const controller = new AbortController();
@@ -82,10 +80,7 @@ class CloudMaskService {
 
       const response = await fetch(`${this.config.backendUrl}/cloud-mask`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
         signal: controller.signal,
       });
 
@@ -105,26 +100,26 @@ class CloudMaskService {
       const data = await response.json();
 
       // Validate response structure
-      if (!data.maskedImage) {
-        throw new Error("Invalid response: missing masked image data");
+      if (!data.cloud_mask || !data.cloud_prob || !data.clean_rgb) {
+        throw new Error("Invalid response: missing required output images");
       }
 
       const processingTime = Date.now() - startTime;
 
       return {
-        success: true,
-        maskedImage: data.maskedImage,
-        cloudCoverage: data.cloudCoverage || data.cloud_coverage || 0,
-        processingTime: data.processingTime || data.processing_time || processingTime,
-        maskData: data.maskData || data.mask_data,
-        metadata: data.metadata,
+        success: data.success !== false,
+        cloud_mask: data.cloud_mask,
+        cloud_prob: data.cloud_prob,
+        clean_rgb: data.clean_rgb,
+        cloud_percent: data.cloud_percent || 0,
+        processingTimeMs: data.processingTimeMs || processingTime,
       };
     } catch (error: any) {
       console.error("Cloud masking error:", error);
 
       // Handle specific error types
       if (error.name === "AbortError") {
-        throw new Error("Request timeout: Cloud masking is taking too long");
+        throw new Error("Request timeout: Cloud masking is taking too long (>30s)");
       }
 
       if (error.message.includes("fetch")) {
@@ -138,25 +133,28 @@ class CloudMaskService {
   }
 
   /**
-   * Batch process multiple images
+   * Batch process multiple SAFE files
    * @param requests Array of cloud mask requests
    * @returns Promise with array of responses
    */
   async maskCloudsBatch(requests: CloudMaskRequest[]): Promise<CloudMaskResponse[]> {
     try {
-      const payload = {
-        images: requests,
-      };
+      const formData = new FormData();
+      
+      // Append all SAFE zip files
+      requests.forEach((req, index) => {
+        formData.append(`safe_zip_${index}`, req.safeZip);
+        if (req.threshold !== undefined) {
+          formData.append(`threshold_${index}`, req.threshold.toString());
+        }
+      });
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), (this.config.timeout || 30000) * requests.length);
 
       const response = await fetch(`${this.config.backendUrl}/cloud-mask/batch`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
         signal: controller.signal,
       });
 

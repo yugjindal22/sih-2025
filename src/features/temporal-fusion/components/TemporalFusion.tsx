@@ -490,7 +490,7 @@ Provide quantitative data for time series and specific dates for anomalies.`;
                             })}
 
                             {/* Seasonal Patterns */}
-                            {analysis.seasonalPatterns.length > 0 && (
+                            {analysis.seasonalPatterns && analysis.seasonalPatterns.length > 0 && (
                               <div className="pt-3 border-t border-border">
                                 <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
                                   <Waves className="w-4 h-4" />
@@ -705,13 +705,13 @@ Provide quantitative data for time series and specific dates for anomalies.`;
                             Anomaly Detection
                           </h3>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {analysis.anomalies.length} anomalies detected
+                            {analysis.anomalies?.length || 0} anomalies detected
                           </p>
                         </div>
 
                         <ScrollArea className="flex-1 min-h-0">
                           <div className="p-4 space-y-3">
-                            {analysis.anomalies.length > 0 ? (
+                            {analysis.anomalies && analysis.anomalies.length > 0 ? (
                               analysis.anomalies.map((anomaly, idx) => (
                                 <div
                                   key={idx}
@@ -782,7 +782,7 @@ Provide quantitative data for time series and specific dates for anomalies.`;
                             )}
 
                             {/* Recommendations */}
-                            {analysis.recommendations.length > 0 && (
+                            {analysis.recommendations && analysis.recommendations.length > 0 && (
                               <div className="pt-3 border-t border-border">
                                 <h4 className="text-sm font-semibold mb-3">
                                   Recommendations

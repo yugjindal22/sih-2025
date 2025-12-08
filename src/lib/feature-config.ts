@@ -10,6 +10,7 @@ import {
     Clock,
     Layers,
     CloudOff,
+    Globe,
     type LucideIcon,
 } from "lucide-react";
 
@@ -121,6 +122,15 @@ export const features: FeatureModule[] = [
         icon: Layers,
         implemented: true,
         route: "/dashboard/features/multi-sensor-fusion",
+        fromPrototype: true,
+    },
+    {
+        id: "satellite-tile-viewer",
+        title: "Satellite Tile Viewer",
+        description: "Interactive geospatial viewer with GEO-Chat for Sentinel-2 data analysis",
+        icon: Globe,
+        implemented: true,
+        route: "/dashboard/features/satellite-tile-viewer",
         fromPrototype: true,
     },
 ];

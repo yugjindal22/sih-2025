@@ -34,7 +34,9 @@ export default function Hero() {
                 </span>
               </h1>
               <p className="text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-300 leading-relaxed">
-                Advanced AI-powered platform combining vision encoders with large language models for comprehensive satellite imagery analysis and insights.
+                Advanced AI-powered platform combining vision encoders with
+                large language models for comprehensive satellite imagery
+                analysis and insights.
               </p>
             </div>
 
@@ -79,7 +81,10 @@ export default function Hero() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
-              <Link href="/dashboard/features/vision-pipeline-visualizer" className="w-full sm:w-auto">
+              <Link
+                href="/dashboard/features/vision-pipeline-visualizer"
+                className="w-full sm:w-auto"
+              >
                 <Button
                   size="lg"
                   variant="outline"

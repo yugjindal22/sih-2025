@@ -31,7 +31,9 @@ const getInitialApiKey = () => safeLocalStorage("gemini_api_key") ?? "";
 const getInitialOssUrl = () => safeLocalStorage("local_oss_url") ?? "";
 
 export default function SettingsPage() {
-  const [adapter, setAdapter] = useState<"gemini" | "local-oss">(getInitialAdapter);
+  const [adapter, setAdapter] = useState<"gemini" | "local-oss">(
+    getInitialAdapter
+  );
   const [apiKey, setApiKey] = useState<string>(getInitialApiKey);
   const [localOssUrl, setLocalOssUrl] = useState<string>(getInitialOssUrl);
 

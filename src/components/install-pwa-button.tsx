@@ -20,7 +20,8 @@ const isStandalone = () =>
     (window.navigator as NavigatorWithStandalone).standalone === true);
 
 export default function InstallPWAButton() {
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [promptEvent, setPromptEvent] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState<boolean>(() => isStandalone());
 
   useEffect(() => {

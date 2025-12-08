@@ -117,14 +117,6 @@ const TemporalFusion = ({ images, onClose }: TemporalFusionProps) => {
       setIsAnalyzing(true);
 
       try {
-        const apiKey = localStorage.getItem("gemini_api_key") || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
-        if (!apiKey) {
-          toast.error("Please set your API key in Settings");
-          setIsAnalyzing(false);
-          return;
-        }
-
         // Create detailed prompt for temporal analysis
         const imageList = sortedImages
           .map((img, idx) => `Image ${idx + 1}: ${img.label} - ${img.date}`)

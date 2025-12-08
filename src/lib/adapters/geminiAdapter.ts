@@ -21,7 +21,7 @@ export class GeminiAdapter implements VisionAdapter {
         options?: AnalysisOptions
     ): Promise<AnalysisResult> {
         const { imageUrls, prompt, metadata } = input;
-        const model = options?.model || "gemini-2.5-flash";
+        const model = options?.model || "gemini-2.5-flash-lite";
 
         const parts: any[] = [{ text: prompt }];
 

@@ -9,6 +9,8 @@ import {
     Brain,
     Clock,
     Layers,
+    CloudOff,
+    Globe,
     type LucideIcon,
 } from "lucide-react";
 
@@ -105,13 +107,31 @@ export const features: FeatureModule[] = [
         fromPrototype: false,
     },
     {
+        id: "cloud-masking",
+        title: "Cloud Masking",
+        description: "Automated cloud detection and removal from satellite imagery",
+        icon: CloudOff,
+        implemented: true,
+        route: "/dashboard/features/cloud-masking",
+        fromPrototype: false,
+    },
+    {
         id: "multi-sensor-fusion",
         title: "Multi-Sensor Fusion",
         description: "Integrate data from multiple satellite sensors for enhanced analysis",
         icon: Layers,
-        implemented: false,
+        implemented: true,
         route: "/dashboard/features/multi-sensor-fusion",
-        fromPrototype: false,
+        fromPrototype: true,
+    },
+    {
+        id: "satellite-tile-viewer",
+        title: "Satellite Tile Viewer",
+        description: "Interactive geospatial viewer with GEO-Chat for Sentinel-2 data analysis",
+        icon: Globe,
+        implemented: true,
+        route: "/dashboard/features/satellite-tile-viewer",
+        fromPrototype: true,
     },
 ];
 

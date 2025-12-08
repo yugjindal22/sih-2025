@@ -20,7 +20,6 @@ import {
   Wind,
   Cloud,
   Sun,
-  MapPin,
   Gauge,
   BarChart3,
   PieChart,
@@ -68,11 +67,6 @@ export interface AnalysisData {
   }[];
   insights: string[];
   recommendations: string[];
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-    location?: string;
-  };
 }
 
 interface AnalysisDashboardProps {
@@ -205,46 +199,251 @@ const AnalysisDashboard = ({
             </Card>
           </div>
 
-          {/* Location Info - Compact */}
-          {data.coordinates && (
-            <Card className="p-3 bg-card/50 backdrop-blur-sm border-border">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {data.coordinates.location || "Unknown Location"}
-                  </p>
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    {data.coordinates.latitude != null && data.coordinates.longitude != null ? (
-                      <>
-                        <span>{data.coordinates.latitude.toFixed(2)}°N</span>
-                        <span>{data.coordinates.longitude.toFixed(2)}°E</span>
-                      </>
-                    ) : (
-                      <span>Coordinates not available</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
-
           {/* Tabbed Content for Better Space Usage */}
-          <Tabs defaultValue="landcover" className="w-full">
+          <Tabs defaultValue="analysis" className="w-full">
             <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50">
+              <TabsTrigger value="analysis" className="text-xs px-2">
+                <Eye className="w-4 h-4 mr-1" />
+                Analysis
+              </TabsTrigger>
               <TabsTrigger value="landcover" className="text-xs px-2">
                 <Layers className="w-4 h-4 mr-1" />
                 Land
-              </TabsTrigger>
-              <TabsTrigger value="environment" className="text-xs px-2">
-                <Sun className="w-4 h-4 mr-1" />
-                Env
               </TabsTrigger>
               <TabsTrigger value="insights" className="text-xs px-2">
                 <TrendingUp className="w-4 h-4 mr-1" />
                 Insights
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="analysis" className="mt-3 space-y-3">
+              {/* Summary */}
+              <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 shadow-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <Eye className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-foreground mb-1">
+                      High-Level Summary
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Overview of the Earth Observation analysis
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-14">
+                  <p className="text-sm leading-relaxed text-foreground">
+                    {data.summary}
+                  </p>
+                </div>
+              </Card>
+
+              {/* Key Visual Features */}
+              <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 shadow-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-blue-500/20">
+                    <Layers className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-foreground mb-1">
+                      Key Visual Features
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Detailed observations of important objects and patterns
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-14 space-y-3">
+                  {data.insights.slice(0, 2).map((insight, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-background/50 border border-blue-500/10">
+                      <div className="flex items-start gap-2">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs font-bold">
+                          {idx + 1}
+                        </span>
+                        <p className="text-sm leading-relaxed text-foreground flex-1">
+                          {insight}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Spatial Relationships */}
+              <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 shadow-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-purple-500/20">
+                    <Activity className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-foreground mb-1">
+                      Spatial Relationships
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      How elements are arranged relative to each other
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-14 space-y-3">
+                  {data.insights.slice(2, 3).map((insight, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-background/50 border border-purple-500/10">
+                      <p className="text-sm leading-relaxed text-foreground">
+                        {insight}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Notable Observations */}
+              {data.features.length > 0 && (
+                <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 shadow-sm">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-orange-500/20">
+                      <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-foreground mb-1">
+                        Notable Observations
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Unusual, prominent, or significant visual elements
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-14 space-y-2">
+                    {data.features.map((feature, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-background/50 border border-orange-500/10"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`p-1.5 rounded-md ${
+                            feature.severity === "High"
+                              ? "bg-red-500/20"
+                              : feature.severity === "Medium"
+                              ? "bg-yellow-500/20"
+                              : "bg-blue-500/20"
+                          }`}>
+                            <AlertTriangle
+                              className={`w-4 h-4 ${
+                                feature.severity === "High"
+                                  ? "text-red-500"
+                                  : feature.severity === "Medium"
+                                  ? "text-yellow-500"
+                                  : "text-blue-500"
+                              }`}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground mb-1">
+                              {feature.type}
+                            </p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Possible Interpretations */}
+              <Card className="p-4 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 shadow-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-cyan-500/20">
+                    <TrendingUp className="w-5 h-5 text-cyan-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-foreground mb-1">
+                      Possible Interpretations
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      What the observed features might imply
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-14 space-y-3">
+                  {data.insights.slice(3, 5).map((insight, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-background/50 border border-cyan-500/10">
+                      <div className="flex items-start gap-2">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 flex items-center justify-center text-xs font-bold">
+                          →
+                        </span>
+                        <p className="text-sm leading-relaxed text-foreground flex-1">
+                          {insight}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Recommendations */}
+              <Card className="p-4 bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20 shadow-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-green-500/20">
+                    <TrendingUp className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-foreground mb-1">
+                      Recommendations
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Suggested actions based on analysis
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-14 space-y-2">
+                  {data.recommendations.map((rec, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-background/50 border border-green-500/10">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-sm font-bold">
+                          ✓
+                        </div>
+                        <p className="text-sm leading-relaxed text-foreground flex-1">
+                          {rec}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Confidence & Stats */}
+              <Card className="p-4 bg-gradient-to-br from-muted/50 to-muted/20 border-border shadow-sm">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Gauge className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-foreground mb-1">
+                      Analysis Metadata
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Confidence level and processing statistics
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-14 grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-background/50 border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Confidence</p>
+                    <p className="text-xl font-bold text-primary">
+                      {data.confidence.toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-background/50 border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Features Detected</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {data.features.length}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="landcover" className="mt-3 space-y-3">
               {/* Land Cover - Mini Pie Chart Visualization */}

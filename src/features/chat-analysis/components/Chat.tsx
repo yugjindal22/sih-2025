@@ -378,13 +378,30 @@ Provide detailed insights about:
 
       enhancedPrompt += `
 
+=== ANALYSIS REQUIREMENTS ===
+
+Provide a THOROUGH, HIGHLY DETAILED analysis of this Earth Observation image.
+
 CRITICAL RULES - DO NOT VIOLATE:
-1. Do NOT invent temperature, humidity, cloudCover, or environmental values
-2. If metadata is not provided, use "Not available" or null for those fields
-3. Never hallucinate information that cannot be directly seen in the image
-4. Only describe visible objects, features, colors, textures, and patterns
-5. If a field is not inferable from pixels alone, use "Not detectable from image"
-6. For environmental data: only use if explicitly in metadata, otherwise null
+1. Analyze ONLY what is visually present in the image
+2. Do NOT guess geographic location, country, coordinates, temperature, humidity, or environmental data
+3. Do NOT hallucinate data that is not visible
+4. Include EVERY important visual element: patterns, relationships, spatial layout, colors, textures, anomalies, features
+5. If something cannot be determined visually, state "Not inferable from image" or use null
+6. Provide reasoning when meaningful (why something is significant, what it indicates)
+7. For environmental data: only use if explicitly in metadata, otherwise null
+
+Your analysis MUST be rich in detail and include:
+
+✓ HIGH-LEVEL SUMMARY: What the image generally shows
+✓ KEY VISUAL FEATURES: Detailed list of all important objects, patterns, regions with specific descriptions
+✓ SPATIAL RELATIONSHIPS: How elements are arranged relative to each other
+✓ NOTABLE OBSERVATIONS: Anything unusual, prominent, or meaningful with explanations
+✓ POSSIBLE INTERPRETATIONS: What observed features might imply (only if supported by visible evidence)
+✓ DETAILED INSIGHTS: Rich, comprehensive observations about land cover distribution, vegetation patterns, water features, urban development
+✓ LIMITATIONS: What cannot be inferred from the image
+
+Write in a clear, structured, professional tone. Be comprehensive and thorough.
 
 IMPORTANT: Please provide your response in the following JSON format:
 {
@@ -428,9 +445,11 @@ IMPORTANT: Please provide your response in the following JSON format:
     }
   ],
   "insights": [
-    "Key insight 1",
-    "Key insight 2",
-    "Key insight 3"
+    "Detailed insight about spatial patterns and relationships observed",
+    "Comprehensive observation about land cover distribution with specific percentages and reasoning",
+    "Thorough analysis of notable features, anomalies, or significant visual elements",
+    "In-depth interpretation of vegetation health, density patterns, and visible characteristics",
+    "Detailed assessment of urban development patterns, infrastructure layout, and spatial organization"
   ],
   "recommendations": [
     "Recommendation 1",
@@ -613,15 +632,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
           enhancedPrompt += `- Resolution: ${metadata.resolution}\n`;
       }
 
-      enhancedPrompt += `\n\nCRITICAL RULES - DO NOT VIOLATE:
-1. Do NOT invent temperature, humidity, cloudCover, or environmental values
-2. If metadata is not provided, use "Not available" or null for those fields
-3. Never hallucinate information that cannot be directly seen in the image
-4. Only describe visible objects, features, colors, textures, and patterns
-5. If a field is not inferable from pixels alone, use "Not detectable from image"
-6. For environmental data: only use if explicitly in metadata, otherwise null
-
-IMPORTANT: Please provide your response in the following JSON format:
+      enhancedPrompt += `\n\n=== ANALYSIS REQUIREMENTS ===\n\nProvide a THOROUGH, HIGHLY DETAILED analysis of this Earth Observation image.\n\nCRITICAL RULES - DO NOT VIOLATE:\n1. Analyze ONLY what is visually present in the image\n2. Do NOT guess geographic location, country, coordinates, temperature, humidity, or environmental data\n3. Do NOT hallucinate data that is not visible\n4. Include EVERY important visual element: patterns, relationships, spatial layout, colors, textures, anomalies, features\n5. If something cannot be determined visually, state "Not inferable from image" or use null\n6. Provide reasoning when meaningful (why something is significant, what it indicates)\n7. For environmental data: only use if explicitly in metadata, otherwise null\n\nYour analysis MUST be rich in detail and include:\n\n✓ HIGH-LEVEL SUMMARY: What the image generally shows\n✓ KEY VISUAL FEATURES: Detailed list of all important objects, patterns, regions with specific descriptions\n✓ SPATIAL RELATIONSHIPS: How elements are arranged relative to each other\n✓ NOTABLE OBSERVATIONS: Anything unusual, prominent, or meaningful with explanations\n✓ POSSIBLE INTERPRETATIONS: What observed features might imply (only if supported by visible evidence)\n✓ DETAILED INSIGHTS: Rich, comprehensive observations about land cover distribution, vegetation patterns, water features, urban development\n✓ LIMITATIONS: What cannot be inferred from the image\n\nWrite in a clear, structured, professional tone. Be comprehensive and thorough.\n\nIMPORTANT: Please provide your response in the following JSON format:
 {
   "summary": "Brief 2-3 sentence summary for the chat window",
   "confidence": 85.5,
@@ -663,9 +674,11 @@ IMPORTANT: Please provide your response in the following JSON format:
     }
   ],
   "insights": [
-    "Key insight 1",
-    "Key insight 2",
-    "Key insight 3"
+    "Detailed insight about spatial patterns and relationships observed",
+    "Comprehensive observation about land cover distribution with specific percentages and reasoning",
+    "Thorough analysis of notable features, anomalies, or significant visual elements",
+    "In-depth interpretation of vegetation health, density patterns, and visible characteristics",
+    "Detailed assessment of urban development patterns, infrastructure layout, and spatial organization"
   ],
   "recommendations": [
     "Recommendation 1",

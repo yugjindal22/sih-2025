@@ -789,7 +789,7 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
           }}
         />
       ) : (
-        <div className="relative min-h-[calc(100vh-4rem)] bg-background overflow-hidden flex flex-col">
+        <div className="relative h-screen bg-background overflow-hidden flex flex-col">
           {/* Grid Pattern Overlay - Theme Aware */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.1)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
 

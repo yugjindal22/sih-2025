@@ -17,12 +17,47 @@ interface ROI {
     height: number;
 }
 
+interface ROIAnalysisResult {
+    summary: string;
+    landCover: {
+        dominant: string;
+        percentage: number;
+        secondary: string[];
+    };
+    features: Array<{
+        type: string;
+        description: string;
+        confidence: number;
+    }>;
+    vegetation: {
+        presence: string;
+        health: string;
+        types: string[];
+    };
+    infrastructure: {
+        detected: boolean;
+        types: string[];
+        density: string;
+    };
+    environmental: {
+        waterBodies: string;
+        soilCondition: string;
+        elevation: string;
+    };
+    analysis: {
+        classification: string;
+        keyObservations: string[];
+        anomalies: string[];
+        recommendations: string[];
+    };
+}
+
 export default function ROIAnalysisPage() {
     const router = useRouter();
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [roiMode, setRoiMode] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<ROIAnalysisResult | null>(null);
     const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -102,21 +137,67 @@ export default function ROIAnalysisPage() {
             // Analyze the cropped region with the backend
             const result = await responseService.analyzeImage({
                 imageUrls: [croppedImage],
-                prompt: `Analyze this region of interest from satellite/aerial imagery. Provide detailed analysis of:
-1. Land cover and vegetation types
-2. Key features and objects visible
-3. Environmental characteristics
-4. Any notable patterns or anomalies
-5. Potential use or classification of this area
+                prompt: `Analyze this region of interest from satellite/aerial imagery.
 
-Be specific and detailed in your analysis.`,
+IMPORTANT: Respond ONLY with valid JSON in this exact format:
+{
+  "summary": "Brief 2-3 sentence overview",
+  "landCover": {
+    "dominant": "Primary land cover type",
+    "percentage": 65.5,
+    "secondary": ["Other types present"]
+  },
+  "features": [
+    {
+      "type": "Feature category",
+      "description": "What is visible",
+      "confidence": 85.2
+    }
+  ],
+  "vegetation": {
+    "presence": "High/Medium/Low/None",
+    "health": "Good/Fair/Poor",
+    "types": ["Tree species or vegetation types"]
+  },
+  "infrastructure": {
+    "detected": true,
+    "types": ["Roads", "Buildings", "etc"],
+    "density": "High/Medium/Low"
+  },
+  "environmental": {
+    "waterBodies": "Present/Absent",
+    "soilCondition": "Description",
+    "elevation": "Flat/Hilly/Mountainous"
+  },
+  "analysis": {
+    "classification": "Urban/Agricultural/Forest/Water/Mixed",
+    "keyObservations": ["Observation 1", "Observation 2"],
+    "anomalies": ["Any unusual patterns"],
+    "recommendations": ["Suggestion 1", "Suggestion 2"]
+  }
+}
+
+Output ONLY valid JSON. No markdown, no code blocks, no extra text.`,
                 metadata: {
                     feature: "roi-analysis",
                     roiCoordinates: roi,
                 },
             });
 
-            setAnalysisResult(result.text);
+            let parsedResult: ROIAnalysisResult;
+            try {
+                let jsonText = result.text;
+                if (jsonText.includes("```json")) {
+                    jsonText = jsonText.split("```json")[1].split("```")[0].trim();
+                } else if (jsonText.includes("```")) {
+                    jsonText = jsonText.split("```")[1].split("```")[0].trim();
+                }
+                parsedResult = JSON.parse(jsonText);
+            } catch (e) {
+                throw new Error("Invalid response format from AI model");
+            }
+
+            setAnalysisResult(parsedResult);
             toast.success("ROI analysis complete!");
         } catch (error) {
             console.error("ROI analysis error:", error);
@@ -287,14 +368,86 @@ Be specific and detailed in your analysis.`,
                                             Analysis Results
                                         </CardTitle>
                                         <CardDescription className="text-slate-600 dark:text-slate-400">
-                                            AI-powered analysis of the selected region
+                                            {analysisResult.summary}
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <ScrollArea className="h-[500px] pr-4">
-                                            <div className="prose prose-slate dark:prose-invert max-w-none">
-                                                <div className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
-                                                    {analysisResult}
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Land Cover</h3>
+                                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                                                        <p className="text-sm"><span className="font-medium">Dominant:</span> {analysisResult.landCover.dominant} ({analysisResult.landCover.percentage}%)</p>
+                                                        <p className="text-sm mt-1"><span className="font-medium">Secondary:</span> {analysisResult.landCover.secondary.join(", ")}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Features Detected</h3>
+                                                    <div className="space-y-2">
+                                                        {analysisResult.features.map((feature, idx) => (
+                                                            <div key={idx} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div>
+                                                                        <p className="font-medium text-sm">{feature.type}</p>
+                                                                        <p className="text-xs text-slate-600 dark:text-slate-400">{feature.description}</p>
+                                                                    </div>
+                                                                    <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded">{feature.confidence}%</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Vegetation</h3>
+                                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-sm">
+                                                            <p><span className="font-medium">Presence:</span> {analysisResult.vegetation.presence}</p>
+                                                            <p><span className="font-medium">Health:</span> {analysisResult.vegetation.health}</p>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{analysisResult.vegetation.types.join(", ")}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Infrastructure</h3>
+                                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-sm">
+                                                            <p><span className="font-medium">Detected:</span> {analysisResult.infrastructure.detected ? "Yes" : "No"}</p>
+                                                            <p><span className="font-medium">Density:</span> {analysisResult.infrastructure.density}</p>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{analysisResult.infrastructure.types.join(", ")}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Classification: {analysisResult.analysis.classification}</h3>
+                                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
+                                                        <div>
+                                                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Key Observations</p>
+                                                            <ul className="list-disc list-inside text-sm space-y-1">
+                                                                {analysisResult.analysis.keyObservations.map((obs, idx) => (
+                                                                    <li key={idx}>{obs}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                        {analysisResult.analysis.anomalies.length > 0 && (
+                                                            <div>
+                                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Anomalies</p>
+                                                                <ul className="list-disc list-inside text-sm space-y-1 text-orange-600 dark:text-orange-400">
+                                                                    {analysisResult.analysis.anomalies.map((anomaly, idx) => (
+                                                                        <li key={idx}>{anomaly}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Recommendations</p>
+                                                            <ul className="list-disc list-inside text-sm space-y-1">
+                                                                {analysisResult.analysis.recommendations.map((rec, idx) => (
+                                                                    <li key={idx}>{rec}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </ScrollArea>

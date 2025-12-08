@@ -82,20 +82,31 @@ const Chat = ({ onBack }: ChatProps) => {
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const metadataInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+    setShowScrollButton(!isNearBottom && messages.length > 0);
+  };
+
   useEffect(() => {
-    // Scroll to bottom when messages change
-    if (messages.length > 0) {
-      scrollToBottom();
+    // Only auto-scroll when processing completes (new assistant message)
+    if (!isProcessing && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant") {
+        setTimeout(() => scrollToBottom(), 100);
+      }
     }
-  }, [messages]);
+  }, [isProcessing, messages]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -363,11 +374,19 @@ Provide detailed insights about:
         if (metadata.date) enhancedPrompt += `- Date: ${metadata.date}\n`;
         if (metadata.resolution)
           enhancedPrompt += `- Resolution: ${metadata.resolution}\n`;
-        if (metadata.location)
-          enhancedPrompt += `- Location: ${metadata.location} (Please use this location in the coordinates.location field of your JSON response)\n`;
       }
 
-      enhancedPrompt += `\n\nIMPORTANT: Please provide your response in the following JSON format:
+      enhancedPrompt += `
+
+CRITICAL RULES - DO NOT VIOLATE:
+1. Do NOT invent temperature, humidity, cloudCover, or environmental values
+2. If metadata is not provided, use "Not available" or null for those fields
+3. Never hallucinate information that cannot be directly seen in the image
+4. Only describe visible objects, features, colors, textures, and patterns
+5. If a field is not inferable from pixels alone, use "Not detectable from image"
+6. For environmental data: only use if explicitly in metadata, otherwise null
+
+IMPORTANT: Please provide your response in the following JSON format:
 {
   "summary": "Brief 2-3 sentence summary for the chat window",
   "confidence": 85.5,
@@ -396,10 +415,10 @@ Provide detailed insights about:
     "infrastructure": ["Roads", "Buildings", "Industrial"]
   },
   "environmental": {
-    "temperature": 28,
-    "humidity": 65,
-    "airQuality": "Good",
-    "cloudCover": 20
+    "temperature": null,
+    "humidity": null,
+    "airQuality": "Not detectable from image",
+    "cloudCover": null
   },
   "features": [
     {
@@ -416,12 +435,7 @@ Provide detailed insights about:
   "recommendations": [
     "Recommendation 1",
     "Recommendation 2"
-  ],
-  "coordinates": {
-    "latitude": 0.0,
-    "longitude": 0.0,
-    "location": "Location Name"
-  }
+  ]
 }
 
 Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
@@ -597,11 +611,17 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
         if (metadata.date) enhancedPrompt += `- Date: ${metadata.date}\n`;
         if (metadata.resolution)
           enhancedPrompt += `- Resolution: ${metadata.resolution}\n`;
-        if (metadata.location)
-          enhancedPrompt += `- Location: ${metadata.location} (Please use this location in the coordinates.location field of your JSON response)\n`;
       }
 
-      enhancedPrompt += `\n\nIMPORTANT: Please provide your response in the following JSON format:
+      enhancedPrompt += `\n\nCRITICAL RULES - DO NOT VIOLATE:
+1. Do NOT invent temperature, humidity, cloudCover, or environmental values
+2. If metadata is not provided, use "Not available" or null for those fields
+3. Never hallucinate information that cannot be directly seen in the image
+4. Only describe visible objects, features, colors, textures, and patterns
+5. If a field is not inferable from pixels alone, use "Not detectable from image"
+6. For environmental data: only use if explicitly in metadata, otherwise null
+
+IMPORTANT: Please provide your response in the following JSON format:
 {
   "summary": "Brief 2-3 sentence summary for the chat window",
   "confidence": 85.5,
@@ -630,10 +650,10 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
     "infrastructure": ["Roads", "Buildings", "Industrial"]
   },
   "environmental": {
-    "temperature": 28,
-    "humidity": 65,
-    "airQuality": "Good",
-    "cloudCover": 20
+    "temperature": null,
+    "humidity": null,
+    "airQuality": "Not detectable from image",
+    "cloudCover": null
   },
   "features": [
     {
@@ -650,12 +670,7 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
   "recommendations": [
     "Recommendation 1",
     "Recommendation 2"
-  ],
-  "coordinates": {
-    "latitude": 0.0,
-    "longitude": 0.0,
-    "location": "Location Name"
-  }
+  ]
 }
 
 IMPORTANT: 
@@ -900,10 +915,14 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
               </div>
 
               {/* Center: Chat */}
-              <div className="lg:col-span-5 col-span-12 flex flex-col h-full gap-4">
-                <Card className="flex-1 bg-card/50 backdrop-blur-sm border-border flex flex-col shadow-sm overflow-hidden">
+              <div className="lg:col-span-5 col-span-12 flex flex-col min-h-0">
+                <Card className="flex-1 bg-card/50 backdrop-blur-sm border-border flex flex-col shadow-sm overflow-hidden relative">
                   {/* Messages - Scrollable */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div 
+                    ref={messagesContainerRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-scroll overflow-x-hidden p-4 space-y-4 scroll-smooth min-h-0"
+                  >
                     {messages.length === 0 && (
                       <div className="text-center text-muted-foreground py-12">
                         <div className="bg-muted/50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
@@ -996,6 +1015,21 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
                     <div ref={messagesEndRef} />
                   </div>
 
+                  {/* Scroll to Bottom Button */}
+                  {showScrollButton && (
+                    <Button
+                      onClick={scrollToBottom}
+                      size="icon"
+                      className="absolute bottom-20 right-6 rounded-full shadow-lg z-20 bg-primary hover:bg-primary/90"
+                      title="Scroll to bottom"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m18 15-6 6-6-6"/>
+                        <path d="M12 3v18"/>
+                      </svg>
+                    </Button>
+                  )}
+
                   {/* Input - Fixed at bottom */}
                   <div className="relative z-10 border-t border-border p-4 bg-card backdrop-blur-md flex-shrink-0">
                     {uploadedImage && (
@@ -1079,13 +1113,6 @@ Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no e
                     </div>
                   </div>
                 </Card>
-
-                {/* Reasoning Trace */}
-                {currentReasoningSteps.length > 0 && (
-                  <div className="flex-shrink-0">
-                    <ReasoningTrace steps={currentReasoningSteps} />
-                  </div>
-                )}
               </div>
 
               {/* Right: Analysis Dashboard */}

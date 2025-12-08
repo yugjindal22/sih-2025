@@ -20,7 +20,6 @@ import {
   Wind,
   Cloud,
   Sun,
-  MapPin,
   Gauge,
   BarChart3,
   PieChart,
@@ -68,11 +67,6 @@ export interface AnalysisData {
   }[];
   insights: string[];
   recommendations: string[];
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-    location?: string;
-  };
 }
 
 interface AnalysisDashboardProps {
@@ -205,40 +199,12 @@ const AnalysisDashboard = ({
             </Card>
           </div>
 
-          {/* Location Info - Compact */}
-          {data.coordinates && (
-            <Card className="p-3 bg-card/50 backdrop-blur-sm border-border">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {data.coordinates.location || "Unknown Location"}
-                  </p>
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    {data.coordinates.latitude != null && data.coordinates.longitude != null ? (
-                      <>
-                        <span>{data.coordinates.latitude.toFixed(2)}°N</span>
-                        <span>{data.coordinates.longitude.toFixed(2)}°E</span>
-                      </>
-                    ) : (
-                      <span>Coordinates not available</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
-
           {/* Tabbed Content for Better Space Usage */}
           <Tabs defaultValue="landcover" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50">
+            <TabsList className="grid w-full grid-cols-2 h-9 bg-muted/50">
               <TabsTrigger value="landcover" className="text-xs px-2">
                 <Layers className="w-4 h-4 mr-1" />
                 Land
-              </TabsTrigger>
-              <TabsTrigger value="environment" className="text-xs px-2">
-                <Sun className="w-4 h-4 mr-1" />
-                Env
               </TabsTrigger>
               <TabsTrigger value="insights" className="text-xs px-2">
                 <TrendingUp className="w-4 h-4 mr-1" />

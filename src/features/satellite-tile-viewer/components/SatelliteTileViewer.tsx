@@ -631,15 +631,15 @@ export default function SatelliteTileViewer() {
           <div className="absolute inset-0 z-[500] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="max-w-4xl w-full">
               <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex-shrink-0">
                     <Crosshair className="w-6 h-6 text-white" />
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-2xl font-bold text-white truncate">
                       ROI Analysis Mode
                     </h2>
-                    <p className="text-sm text-cyan-200">
+                    <p className="text-sm text-cyan-200 truncate">
                       Click and drag to select a region of interest
                     </p>
                   </div>
@@ -818,7 +818,7 @@ export default function SatelliteTileViewer() {
       </div>
 
       {/* CHAT SIDEBAR */}
-      <div className="w-full lg:w-96 h-[50vh] lg:h-screen bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-2xl z-[300]">
+      <div className="w-full lg:w-96 h-[50vh] lg:h-screen bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l-2 border-slate-300 dark:border-slate-700 flex flex-col shadow-2xl z-[300]">
         <div className="p-3 lg:p-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-900/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 lg:gap-3">
@@ -992,14 +992,14 @@ export default function SatelliteTileViewer() {
                   {downloadedFiles.map((file, idx) => (
                     <Card
                       key={idx}
-                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition-all"
+                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition-all overflow-hidden"
                     >
                       <CardContent className="p-2 sm:p-2.5 lg:p-3">
                         <div className="space-y-1.5 sm:space-y-2">
                           <div className="flex items-start gap-1.5 sm:gap-2">
                             <FileArchive className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] sm:text-xs lg:text-sm font-medium text-slate-900 dark:text-slate-100 truncate leading-tight">
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <p className="text-[10px] sm:text-xs lg:text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight break-all">
                                 {file.filename}
                               </p>
                               <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400">

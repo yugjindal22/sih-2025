@@ -31,7 +31,43 @@ export class LocalPipelineAdapter implements VisionAdapter {
             return rawText;
         }
 
-        const sanitizationPrompt = `You are a JSON sanitizer. The following text contains a JSON response but may have extra tokens, markdown formatting, or other artifacts. Extract ONLY the valid JSON object and return it as clean, parseable JSON. Do not add any explanation, just return the clean JSON.
+        // Check if JSON appears to be truncated (doesn't end with proper closing)
+        const trimmedText = rawText.trim();
+        const isTruncated = !trimmedText.endsWith('}') || 
+            (trimmedText.match(/{/g) || []).length > (trimmedText.match(/}/g) || []).length;
+
+        const sanitizationPrompt = isTruncated 
+            ? `You are a JSON repair and completion assistant. The following JSON response was truncated before completion. Your task is to:
+1. Complete the truncated JSON with realistic, detailed content that matches the style and context of what was already generated
+2. Ensure ALL required fields are present and filled with meaningful detailed content
+3. Return ONLY the complete, valid JSON
+
+Required JSON structure (ensure ALL fields are present with detailed content):
+{
+  "summary": "4-5 sentence summary",
+  "confidence": number,
+  "landCover": {"vegetation": number, "water": number, "urban": number, "bareSoil": number, "forest": number, "agriculture": number},
+  "vegetation": {"health": string, "ndvi": number, "density": number, "types": array},
+  "waterBodies": {"totalArea": number, "quality": string, "sources": array},
+  "urban": {"builtUpArea": number, "development": string, "infrastructure": array},
+  "environmental": {"temperature": null, "humidity": null, "airQuality": string, "cloudCover": null},
+  "features": [{"type": string, "description": "detailed 2-3 sentences", "severity": string}, ...at least 3 features],
+  "insights": ["detailed insight 1", "detailed insight 2", ...at least 8-10 detailed insights],
+  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
+}
+
+IMPORTANT: 
+- Complete any truncated descriptions with detailed content
+- Add missing fields based on context from existing content
+- Each insight should be 2-3 detailed sentences
+- Each feature description should be 2-3 detailed sentences
+- Provide at least 8-10 insights based on the image analysis context
+
+Truncated JSON to complete:
+${rawText}
+
+Return the COMPLETE JSON only:`
+            : `You are a JSON sanitizer. The following text contains a JSON response but may have extra tokens, markdown formatting, or other artifacts. Extract ONLY the valid JSON object and return it as clean, parseable JSON. Do not add any explanation, just return the clean JSON.
 
 Raw text:
 ${rawText}
@@ -39,7 +75,7 @@ ${rawText}
 Return only the clean JSON:`;
 
         try {
-            const model = this.geminiClient.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const model = this.geminiClient.getGenerativeModel({ model: "gemini-2.0-flash" });
             const result = await model.generateContent(sanitizationPrompt);
             const response = await result.response;
             const sanitizedText = response.text();
@@ -55,7 +91,7 @@ Return only the clean JSON:`;
                 cleaned = cleaned.slice(0, -3);
             }
             
-            console.log("Sanitized JSON from Gemini:", cleaned);
+            console.log("Sanitized/Completed JSON from Gemini:", cleaned.substring(0, 500) + "...");
             return cleaned.trim();
         } catch (error) {
             console.error("Gemini sanitization failed with detailed error:", error);
@@ -83,7 +119,9 @@ Return only the clean JSON:`;
         });
 
         const payload: any = {
-            prompt
+            prompt,
+            max_tokens: 8192,
+            temperature: 0.3
         };
 
         // Only add images if there are any

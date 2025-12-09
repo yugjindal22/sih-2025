@@ -102,15 +102,15 @@ const AnalysisDashboard = ({
         const progress = currentStep / steps;
 
         setAnimatedValues({
-          vegetation: data.landCover.vegetation * progress,
-          water: data.landCover.water * progress,
-          urban: data.landCover.urban * progress,
-          bareSoil: data.landCover.bareSoil * progress,
-          forest: data.landCover.forest * progress,
-          agriculture: data.landCover.agriculture * progress,
-          ndvi: data.vegetation.ndvi * progress,
-          density: data.vegetation.density * progress,
-          confidence: data.confidence * progress,
+          vegetation: (data.landCover?.vegetation || 0) * progress,
+          water: (data.landCover?.water || 0) * progress,
+          urban: (data.landCover?.urban || 0) * progress,
+          bareSoil: (data.landCover?.bareSoil || 0) * progress,
+          forest: (data.landCover?.forest || 0) * progress,
+          agriculture: (data.landCover?.agriculture || 0) * progress,
+          ndvi: (data.vegetation?.ndvi || 0) * progress,
+          density: (data.vegetation?.density || 0) * progress,
+          confidence: (data.confidence || 0) * progress,
         });
 
         if (currentStep >= steps) {
@@ -178,7 +178,7 @@ const AnalysisDashboard = ({
 
             {/* Vegetation Health - Compact */}
             <Card
-              className={`p-4 border ${getHealthBg(data.vegetation.health)}`}
+              className={`p-4 border ${getHealthBg(data.vegetation?.health)}`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 rounded-full bg-green-500/20">
@@ -188,10 +188,10 @@ const AnalysisDashboard = ({
               </div>
               <div
                 className={`text-xl font-bold ${getHealthColor(
-                  data.vegetation.health
+                  data.vegetation?.health
                 )}`}
               >
-                {data.vegetation.health}
+                {data.vegetation?.health}
               </div>
               <div className="text-xs text-muted-foreground">
                 NDVI: {animatedValues.ndvi.toFixed(3)}
@@ -432,7 +432,7 @@ const AnalysisDashboard = ({
                   <div className="p-3 rounded-lg bg-background/50 border border-border">
                     <p className="text-xs text-muted-foreground mb-1">Confidence</p>
                     <p className="text-xl font-bold text-primary">
-                      {data.confidence.toFixed(1)}%
+                      {(data.confidence || 0).toFixed(1)}%
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-background/50 border border-border">
@@ -468,7 +468,7 @@ const AnalysisDashboard = ({
                           agriculture: "hsl(84 81% 44%)",
                         };
 
-                        return Object.entries(data.landCover).map(
+                        return Object.entries(data.landCover || {}).map(
                           ([key, value]) => {
                             const percentage = value as number;
                             const angle = (percentage / 100) * 360;
@@ -563,7 +563,7 @@ const AnalysisDashboard = ({
                       <span className="font-medium">Density</span>
                     </div>
                     <div className="text-base font-bold">
-                      {animatedValues.density.toFixed(1)}%
+                      {(animatedValues.density || 0).toFixed(1)}%
                     </div>
                     <Progress
                       value={animatedValues.density}
@@ -573,7 +573,7 @@ const AnalysisDashboard = ({
                   <div>
                     <div className="font-medium mb-1.5">Types</div>
                     <div className="flex flex-wrap gap-1">
-                      {data.vegetation.types?.slice(0, 2).map((type, idx) => (
+                      {data.vegetation?.types?.slice(0, 2).map((type, idx) => (
                         <Badge
                           key={idx}
                           variant="outline"
@@ -589,38 +589,38 @@ const AnalysisDashboard = ({
 
               {/* Water & Urban - Side by Side */}
               <div className="grid grid-cols-2 gap-3">
-                {data.waterBodies.totalArea > 0 && (
+                {(data.waterBodies?.totalArea || 0) > 0 && (
                   <Card className="p-3 bg-blue-500/5 border-blue-500/20">
                     <div className="flex items-center gap-2 mb-1.5">
                       <Droplets className="w-4 h-4 text-blue-500" />
                       <span className="text-xs font-semibold">Water</span>
                     </div>
                     <div className="text-base font-bold text-blue-500">
-                      {data.waterBodies.totalArea.toFixed(1)}%
+                      {(data.waterBodies?.totalArea || 0).toFixed(1)}%
                     </div>
                     <Badge
                       variant="outline"
                       className="mt-1.5 text-[10px] px-1.5 py-0.5 h-5"
                     >
-                      {data.waterBodies.quality}
+                      {data.waterBodies?.quality}
                     </Badge>
                   </Card>
                 )}
 
-                {data.urban.builtUpArea > 0 && (
+                {(data.urban?.builtUpArea || 0) > 0 && (
                   <Card className="p-3 bg-gray-500/5 border-gray-500/20">
                     <div className="flex items-center gap-2 mb-1.5">
                       <Building2 className="w-4 h-4 text-gray-500" />
                       <span className="text-xs font-semibold">Urban</span>
                     </div>
                     <div className="text-base font-bold text-gray-500">
-                      {data.urban.builtUpArea.toFixed(1)}%
+                      {(data.urban?.builtUpArea || 0).toFixed(1)}%
                     </div>
                     <Badge
                       variant="outline"
                       className="mt-1.5 text-[10px] px-1.5 py-0.5 h-5"
                     >
-                      {data.urban.development}
+                      {data.urban?.development}
                     </Badge>
                   </Card>
                 )}
@@ -639,7 +639,7 @@ const AnalysisDashboard = ({
                   <div className="text-center p-3 rounded-lg bg-red-500/5 border border-red-500/20">
                     <Thermometer className="w-5 h-5 mx-auto mb-1.5 text-red-500" />
                     <div className="text-xl font-bold text-red-500">
-                      {data.environmental.temperature}°
+                      {data.environmental?.temperature || 'N/A'}°
                     </div>
                     <div className="text-xs text-muted-foreground">Temp</div>
                   </div>
@@ -648,7 +648,7 @@ const AnalysisDashboard = ({
                   <div className="text-center p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
                     <Droplets className="w-5 h-5 mx-auto mb-1.5 text-blue-500" />
                     <div className="text-xl font-bold text-blue-500">
-                      {data.environmental.humidity}%
+                      {data.environmental?.humidity || 'N/A'}%
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Humidity
@@ -659,7 +659,7 @@ const AnalysisDashboard = ({
                   <div className="text-center p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
                     <Wind className="w-5 h-5 mx-auto mb-1.5 text-cyan-500" />
                     <div className="text-sm font-bold text-cyan-500">
-                      {data.environmental.airQuality}
+                      {data.environmental?.airQuality || 'N/A'}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Air Quality
@@ -670,7 +670,7 @@ const AnalysisDashboard = ({
                   <div className="text-center p-3 rounded-lg bg-gray-500/5 border border-gray-500/20">
                     <Cloud className="w-5 h-5 mx-auto mb-1.5 text-gray-500" />
                     <div className="text-xl font-bold text-gray-500">
-                      {data.environmental.cloudCover}%
+                      {data.environmental?.cloudCover || 'N/A'}%
                     </div>
                     <div className="text-xs text-muted-foreground">Cloud</div>
                   </div>
@@ -765,8 +765,8 @@ const AnalysisDashboard = ({
                     <span>Top Cover:</span>
                     <span className="font-bold">
                       {(() => {
-                        const max = Math.max(...Object.values(data.landCover));
-                        const type = Object.entries(data.landCover).find(
+                        const max = Math.max(...Object.values(data.landCover || {}));
+                        const type = Object.entries(data.landCover || {}).find(
                           ([_, v]) => v === max
                         )?.[0];
                         return type ? type.charAt(0).toUpperCase() + type.slice(1) : "N/A";
@@ -776,7 +776,7 @@ const AnalysisDashboard = ({
                   <div className="flex items-center justify-between p-2 rounded bg-muted/50">
                     <span>Analyzed:</span>
                     <span className="font-bold">
-                      {data.features.length} items
+                      {data.features?.length || 0} items
                     </span>
                   </div>
                 </div>

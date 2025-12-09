@@ -378,86 +378,10 @@ Provide detailed insights about:
 
       enhancedPrompt += `
 
-=== ANALYSIS REQUIREMENTS ===
+Analyze this Earth Observation image. Output valid JSON only:
+{"summary":"5 sentences","confidence":75,"landCover":{"vegetation":0,"water":0,"urban":0,"bareSoil":0,"forest":0,"agriculture":0},"vegetation":{"health":"Good","ndvi":0.5,"density":50,"types":[]},"waterBodies":{"totalArea":0,"quality":"","sources":[]},"urban":{"builtUpArea":0,"development":"Medium","infrastructure":[]},"environmental":{"temperature":null,"humidity":null,"airQuality":"Not detectable","cloudCover":null},"features":[{"type":"","description":"","severity":"Medium"}],"insights":["insight1","insight2","insight3","insight4","insight5"],"recommendations":["rec1","rec2"]}
 
-Provide a THOROUGH, HIGHLY DETAILED analysis of this Earth Observation image.
-
-CRITICAL RULES - DO NOT VIOLATE:
-1. Analyze ONLY what is visually present in the image
-2. Do NOT guess geographic location, country, coordinates, temperature, humidity, or environmental data
-3. Do NOT hallucinate data that is not visible
-4. Include EVERY important visual element: patterns, relationships, spatial layout, colors, textures, anomalies, features
-5. If something cannot be determined visually, state "Not inferable from image" or use null
-6. Provide reasoning when meaningful (why something is significant, what it indicates)
-7. For environmental data: only use if explicitly in metadata, otherwise null
-
-Your analysis MUST be rich in detail and include:
-
-✓ HIGH-LEVEL SUMMARY: What the image generally shows
-✓ KEY VISUAL FEATURES: Detailed list of all important objects, patterns, regions with specific descriptions
-✓ SPATIAL RELATIONSHIPS: How elements are arranged relative to each other
-✓ NOTABLE OBSERVATIONS: Anything unusual, prominent, or meaningful with explanations
-✓ POSSIBLE INTERPRETATIONS: What observed features might imply (only if supported by visible evidence)
-✓ DETAILED INSIGHTS: Rich, comprehensive observations about land cover distribution, vegetation patterns, water features, urban development
-✓ LIMITATIONS: What cannot be inferred from the image
-
-Write in a clear, structured, professional tone. Be comprehensive and thorough.
-
-IMPORTANT: Please provide your response in the following JSON format:
-{
-  "summary": "Brief 2-3 sentence summary for the chat window",
-  "confidence": 85.5,
-  "landCover": {
-    "vegetation": 35.2,
-    "water": 12.5,
-    "urban": 28.3,
-    "bareSoil": 15.0,
-    "forest": 5.0,
-    "agriculture": 4.0
-  },
-  "vegetation": {
-    "health": "Good",
-    "ndvi": 0.65,
-    "density": 72.5,
-    "types": ["Deciduous Trees", "Grassland", "Shrubs"]
-  },
-  "waterBodies": {
-    "totalArea": 12.5,
-    "quality": "Clean",
-    "sources": ["River", "Pond"]
-  },
-  "urban": {
-    "builtUpArea": 28.3,
-    "development": "High",
-    "infrastructure": ["Roads", "Buildings", "Industrial"]
-  },
-  "environmental": {
-    "temperature": null,
-    "humidity": null,
-    "airQuality": "Not detectable from image",
-    "cloudCover": null
-  },
-  "features": [
-    {
-      "type": "Notable Feature",
-      "description": "Description",
-      "severity": "Medium"
-    }
-  ],
-  "insights": [
-    "Detailed insight about spatial patterns and relationships observed",
-    "Comprehensive observation about land cover distribution with specific percentages and reasoning",
-    "Thorough analysis of notable features, anomalies, or significant visual elements",
-    "In-depth interpretation of vegetation health, density patterns, and visible characteristics",
-    "Detailed assessment of urban development patterns, infrastructure layout, and spatial organization"
-  ],
-  "recommendations": [
-    "Recommendation 1",
-    "Recommendation 2"
-  ]
-}
-
-Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
+Fill ALL fields with detailed observations from the image. No hallucination.`;
 
       parts.push({
         text: enhancedPrompt,
@@ -632,62 +556,12 @@ Provide ONLY valid JSON. No markdown, no code blocks, just pure JSON.`;
           enhancedPrompt += `- Resolution: ${metadata.resolution}\n`;
       }
 
-      enhancedPrompt += `\n\n=== ANALYSIS REQUIREMENTS ===\n\nProvide a THOROUGH, HIGHLY DETAILED analysis of this Earth Observation image.\n\nCRITICAL RULES - DO NOT VIOLATE:\n1. Analyze ONLY what is visually present in the image\n2. Do NOT guess geographic location, country, coordinates, temperature, humidity, or environmental data\n3. Do NOT hallucinate data that is not visible\n4. Include EVERY important visual element: patterns, relationships, spatial layout, colors, textures, anomalies, features\n5. If something cannot be determined visually, state "Not inferable from image" or use null\n6. Provide reasoning when meaningful (why something is significant, what it indicates)\n7. For environmental data: only use if explicitly in metadata, otherwise null\n\nYour analysis MUST be rich in detail and include:\n\n✓ HIGH-LEVEL SUMMARY: What the image generally shows\n✓ KEY VISUAL FEATURES: Detailed list of all important objects, patterns, regions with specific descriptions\n✓ SPATIAL RELATIONSHIPS: How elements are arranged relative to each other\n✓ NOTABLE OBSERVATIONS: Anything unusual, prominent, or meaningful with explanations\n✓ POSSIBLE INTERPRETATIONS: What observed features might imply (only if supported by visible evidence)\n✓ DETAILED INSIGHTS: Rich, comprehensive observations about land cover distribution, vegetation patterns, water features, urban development\n✓ LIMITATIONS: What cannot be inferred from the image\n\nWrite in a clear, structured, professional tone. Be comprehensive and thorough.\n\nIMPORTANT: Please provide your response in the following JSON format:
-{
-  "summary": "Brief 2-3 sentence summary for the chat window",
-  "confidence": 85.5,
-  "landCover": {
-    "vegetation": 35.2,
-    "water": 12.5,
-    "urban": 28.3,
-    "bareSoil": 15.0,
-    "forest": 5.0,
-    "agriculture": 4.0
-  },
-  "vegetation": {
-    "health": "Good",
-    "ndvi": 0.65,
-    "density": 72.5,
-    "types": ["Deciduous Trees", "Grassland", "Shrubs"]
-  },
-  "waterBodies": {
-    "totalArea": 12.5,
-    "quality": "Clean",
-    "sources": ["River", "Pond"]
-  },
-  "urban": {
-    "builtUpArea": 28.3,
-    "development": "High",
-    "infrastructure": ["Roads", "Buildings", "Industrial"]
-  },
-  "environmental": {
-    "temperature": null,
-    "humidity": null,
-    "airQuality": "Not detectable from image",
-    "cloudCover": null
-  },
-  "features": [
-    {
-      "type": "Notable Feature",
-      "description": "Description",
-      "severity": "Medium"
-    }
-  ],
-  "insights": [
-    "Detailed insight about spatial patterns and relationships observed",
-    "Comprehensive observation about land cover distribution with specific percentages and reasoning",
-    "Thorough analysis of notable features, anomalies, or significant visual elements",
-    "In-depth interpretation of vegetation health, density patterns, and visible characteristics",
-    "Detailed assessment of urban development patterns, infrastructure layout, and spatial organization"
-  ],
-  "recommendations": [
-    "Recommendation 1",
-    "Recommendation 2"
-  ]
-}
+      enhancedPrompt += `
 
-IMPORTANT: 
-Provide ONLY valid JSON. No markdown, no code blocks,no newline characters, no escpae sequences, just pure JSON in plain text. JSON MODE ON`;
+Analyze this Earth Observation image. Output valid JSON only:
+{"summary":"5 sentences","confidence":75,"landCover":{"vegetation":0,"water":0,"urban":0,"bareSoil":0,"forest":0,"agriculture":0},"vegetation":{"health":"Good","ndvi":0.5,"density":50,"types":[]},"waterBodies":{"totalArea":0,"quality":"","sources":[]},"urban":{"builtUpArea":0,"development":"Medium","infrastructure":[]},"environmental":{"temperature":null,"humidity":null,"airQuality":"Not detectable","cloudCover":null},"features":[{"type":"","description":"","severity":"Medium"}],"insights":["insight1","insight2","insight3","insight4","insight5"],"recommendations":["rec1","rec2"]}
+
+Fill ALL fields with detailed observations from the image. No hallucination.`;
 
       parts.push({
         text: enhancedPrompt,

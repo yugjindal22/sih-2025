@@ -1,10 +1,25 @@
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TreeDeciduous, Droplet, Building2, MapPin, Cloud, Thermometer, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  TreeDeciduous,
+  Droplet,
+  Building2,
+  MapPin,
+  Sparkles,
+  TrendingUp,
+  Leaf,
+  Mountain,
+  Factory,
+  Heart,
+  Activity,
+  Target,
+} from "lucide-react";
 
 export interface AnalysisData {
   summary?: string;
-  text?: string; // Full AI response text
+  text?: string;
   confidence?: number;
   landCover?: {
     vegetation?: number;
@@ -57,327 +72,413 @@ interface AnalysisDashboardProps {
 const AnalysisDashboard = ({ data }: AnalysisDashboardProps) => {
   const getHealthColor = (health: string) => {
     const h = health?.toLowerCase();
-    if (h?.includes("excellent") || h?.includes("good")) return "text-green-500";
+    if (h?.includes("excellent") || h?.includes("good")) return "text-emerald-500";
     if (h?.includes("moderate") || h?.includes("fair")) return "text-yellow-500";
     return "text-red-500";
   };
 
-  const getSeverityColor = (severity?: string) => {
-    const s = severity?.toLowerCase();
-    if (s?.includes("high") || s?.includes("severe")) return "border-red-500 bg-red-500/10";
-    if (s?.includes("medium") || s?.includes("moderate")) return "border-yellow-500 bg-yellow-500/10";
-    return "border-blue-500 bg-blue-500/10";
+  const getHealthBgColor = (health: string) => {
+    const h = health?.toLowerCase();
+    if (h?.includes("excellent") || h?.includes("good")) return "bg-emerald-500/10 border-emerald-500";
+    if (h?.includes("moderate") || h?.includes("fair")) return "bg-yellow-500/10 border-yellow-500";
+    return "bg-red-500/10 border-red-500";
   };
 
-  // If only text is available, show it in a nice format
+  const getSeverityColor = (severity?: string) => {
+    const s = severity?.toLowerCase();
+    if (s?.includes("high") || s?.includes("severe") || s?.includes("critical"))
+      return "border-red-500 bg-red-500/10";
+    if (s?.includes("medium") || s?.includes("moderate"))
+      return "border-orange-500 bg-orange-500/10";
+    if (s?.includes("low")) return "border-blue-500 bg-blue-500/10";
+    return "border-slate-500 bg-slate-500/10";
+  };
+
+  const getSeverityBadgeColor = (severity?: string) => {
+    const s = severity?.toLowerCase();
+    if (s?.includes("high") || s?.includes("severe") || s?.includes("critical"))
+      return "bg-red-500/20 text-red-700 border-red-500";
+    if (s?.includes("medium") || s?.includes("moderate"))
+      return "bg-orange-500/20 text-orange-700 border-orange-500";
+    if (s?.includes("low")) return "bg-blue-500/20 text-blue-700 border-blue-500";
+    return "bg-slate-500/20 text-slate-700 border-slate-500";
+  };
+
+  const getDevelopmentColor = (dev: string) => {
+    const d = dev?.toLowerCase();
+    if (d?.includes("high")) return "text-red-500";
+    if (d?.includes("medium")) return "text-orange-500";
+    return "text-green-500";
+  };
+
   if (!data.landCover && !data.vegetation && !data.waterBodies && !data.urban && data.text) {
     return (
-      <div className="space-y-4 max-w-4xl">
-        {/* Confidence Score */}
-        {data.confidence && (
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Analysis Confidence</span>
-              <span className="text-lg font-bold text-primary">{data.confidence.toFixed(1)}%</span>
-            </div>
-            <Progress value={data.confidence} className="h-2" />
-          </Card>
-        )}
-        
-        {/* AI Response Text */}
-        <Card className="p-5">
-          <div className="flex items-start gap-3 mb-4">
-            <Sparkles className="w-5 h-5 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-base mb-2">AI Analysis Response</h3>
-              <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {data.text}
+      <div className="w-full max-w-7xl mx-auto p-6">
+        <Card className="border-primary/20 shadow-2xl bg-gradient-to-br from-background to-muted/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
+                <Sparkles className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-xl mb-3 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                  AI Analysis Response
+                </h3>
+                <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {data.text}
+                </div>
               </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
-
-        {/* Insights if available */}
-        {data.insights && data.insights.length > 0 && (
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              Key Insights
-            </h3>
-            <ul className="space-y-2">
-              {data.insights.map((insight, i) => (
-                <li key={i} className="text-sm text-muted-foreground flex gap-2">
-                  <span className="text-primary mt-1">•</span>
-                  <span>{insight}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 max-w-4xl">
-      {/* Confidence Score */}
-      {data.confidence && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Analysis Confidence</span>
-            <span className="text-lg font-bold text-primary">{data.confidence.toFixed(1)}%</span>
-          </div>
-          <Progress value={data.confidence} className="h-2" />
-        </Card>
-      )}
-
-      {/* Land Cover Distribution */}
-      {data.landCover && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            Land Cover Distribution
-          </h3>
-          <div className="space-y-2">
-            {Object.entries(data.landCover).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-xs w-24 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                <Progress value={value} className="flex-1 h-2" />
-                <span className="text-xs font-mono w-12 text-right">{value.toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Vegetation Health */}
-      {data.vegetation && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <TreeDeciduous className="w-4 h-4 text-green-500" />
-            Vegetation Analysis
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {data.vegetation.health && (
-              <div>
-                <span className="text-xs text-muted-foreground">Health Status</span>
-                <p className={`text-sm font-semibold ${getHealthColor(data.vegetation.health)}`}>
-                  {data.vegetation.health}
-                </p>
-              </div>
-            )}
-            {data.vegetation.ndvi !== undefined && (
-              <div>
-                <span className="text-xs text-muted-foreground">NDVI</span>
-                <p className="text-sm font-semibold text-green-500">{data.vegetation.ndvi.toFixed(2)}</p>
-              </div>
-            )}
-            {data.vegetation.density !== undefined && (
-              <div>
-                <span className="text-xs text-muted-foreground">Density</span>
-                <p className="text-sm font-semibold">{data.vegetation.density.toFixed(1)}%</p>
-              </div>
-            )}
-            {data.vegetation.types && (
-              <div className="col-span-2">
-                <span className="text-xs text-muted-foreground">Types</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {data.vegetation.types.map((type, idx) => (
-                    <span key={idx} className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Water Bodies */}
-      {data.waterBodies && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Droplet className="w-4 h-4 text-blue-500" />
-            Water Bodies Analysis
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {data.waterBodies.totalArea !== undefined && (
-              <div>
-                <span className="text-xs text-muted-foreground">Total Area</span>
-                <p className="text-sm font-semibold text-blue-500">{data.waterBodies.totalArea.toFixed(1)}%</p>
-              </div>
-            )}
-            {data.waterBodies.quality && (
-              <div>
-                <span className="text-xs text-muted-foreground">Quality</span>
-                <p className="text-sm font-semibold">{data.waterBodies.quality}</p>
-              </div>
-            )}
-            {data.waterBodies.sources && (
-              <div className="col-span-2">
-                <span className="text-xs text-muted-foreground">Sources</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {data.waterBodies.sources.map((source, idx) => (
-                    <span key={idx} className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                      {source}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Urban Development */}
-      {data.urban && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-orange-500" />
-            Urban Development
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {data.urban.builtUpArea !== undefined && (
-              <div>
-                <span className="text-xs text-muted-foreground">Built-up Area</span>
-                <p className="text-sm font-semibold text-orange-500">{data.urban.builtUpArea.toFixed(1)}%</p>
-              </div>
-            )}
-            {data.urban.development && (
-              <div>
-                <span className="text-xs text-muted-foreground">Development Level</span>
-                <p className="text-sm font-semibold">{data.urban.development}</p>
-              </div>
-            )}
-            {data.urban.infrastructure && (
-              <div className="col-span-2">
-                <span className="text-xs text-muted-foreground">Infrastructure</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {data.urban.infrastructure.map((infra, idx) => (
-                    <span key={idx} className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-full">
-                      {infra}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Environmental Conditions */}
-      {data.environmental && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Cloud className="w-4 h-4 text-purple-500" />
-            Environmental Conditions
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {data.environmental.temperature !== undefined && (
-              <div className="flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-red-500" />
-                <div>
-                  <span className="text-xs text-muted-foreground">Temperature</span>
-                  <p className="text-sm font-semibold">{data.environmental.temperature}°C</p>
-                </div>
-              </div>
-            )}
-            {data.environmental.humidity !== undefined && (
-              <div>
-                <span className="text-xs text-muted-foreground">Humidity</span>
-                <p className="text-sm font-semibold">{data.environmental.humidity}%</p>
-              </div>
-            )}
-            {data.environmental.airQuality && (
-              <div>
-                <span className="text-xs text-muted-foreground">Air Quality</span>
-                <p className="text-sm font-semibold">{data.environmental.airQuality}</p>
-              </div>
-            )}
-            {data.environmental.cloudCover !== undefined && (
-              <div>
-                <span className="text-xs text-muted-foreground">Cloud Cover</span>
-                <p className="text-sm font-semibold">{data.environmental.cloudCover}%</p>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Notable Features */}
-      {data.features && data.features.length > 0 && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3">Notable Features</h3>
-          <div className="space-y-2">
-            {data.features.map((feature, idx) => (
-              <div key={idx} className={`p-3 rounded-lg border ${getSeverityColor(feature.severity)}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">{feature.type}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{feature.description}</p>
+    <div className="w-full h-full overflow-hidden">
+      <ScrollArea className="h-full w-full">
+        <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-[1600px] mx-auto">
+          {data.summary && (
+            <Card className="border-primary/20 shadow-xl bg-gradient-to-br from-primary/5 via-background to-purple-500/5">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-purple-600 shadow-lg">
+                    <Sparkles className="w-6 h-6 text-white" />
                   </div>
-                  {feature.severity && (
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary">
-                      {feature.severity}
-                    </span>
-                  )}
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      ROI Analysis Summary
+                    </h2>
+                    <p className="text-base leading-relaxed text-foreground/90">{data.summary}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Insights */}
-      {data.insights && data.insights.length > 0 && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3">Key Insights</h3>
-          <ul className="space-y-2">
-            {data.insights.map((insight, idx) => (
-              <li key={idx} className="text-sm flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>{insight}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {/* Recommendations */}
-      {data.recommendations && data.recommendations.length > 0 && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3">Recommendations</h3>
-          <ul className="space-y-2">
-            {data.recommendations.map((rec, idx) => (
-              <li key={idx} className="text-sm flex items-start gap-2">
-                <span className="text-green-500 mt-1">✓</span>
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {/* Location */}
-      {data.coordinates && (
-        <Card className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            Location
-          </h3>
-          <div className="space-y-2">
-            {data.coordinates.location && (
-              <p className="text-sm">{data.coordinates.location}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {data.vegetation && (
+              <Card className={`border-2 ${getHealthBgColor(data.vegetation.health || "Unknown")} shadow-lg hover:shadow-xl transition-shadow`}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2.5 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 shadow-md">
+                      <Leaf className="w-5 h-5 text-white" />
+                    </div>
+                    <Badge variant="outline" className={`${getHealthColor(data.vegetation.health || "Unknown")} border-current`}>
+                      {data.vegetation.health || "Unknown"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Vegetation Health</h3>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Density</span>
+                        <span className="font-mono font-bold">{data.vegetation.density || 0}%</span>
+                      </div>
+                      <Progress value={data.vegetation.density || 0} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-            {(data.coordinates.latitude !== undefined && data.coordinates.longitude !== undefined) && (
-              <p className="text-xs font-mono text-muted-foreground">
-                {data.coordinates.latitude.toFixed(4)}°N, {data.coordinates.longitude.toFixed(4)}°E
-              </p>
+
+            {data.waterBodies && (
+              <Card className="border-2 border-blue-500/30 bg-blue-500/5 shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-md">
+                      <Droplet className="w-5 h-5 text-white" />
+                    </div>
+                    <Badge variant="outline" className="text-blue-600 border-blue-500">
+                      {data.waterBodies.totalArea || 0}%
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Water Coverage</h3>
+                    <Progress value={data.waterBodies.totalArea || 0} className="h-2" />
+                    {data.waterBodies.quality && (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{data.waterBodies.quality}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.urban && (
+              <Card className="border-2 border-orange-500/30 bg-orange-500/5 shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2.5 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 shadow-md">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <Badge variant="outline" className={`${getDevelopmentColor(data.urban.development || "Low")} border-current`}>
+                      {data.urban.development || "Low"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Urban Area</h3>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Built-up</span>
+                        <span className="font-mono font-bold">{data.urban.builtUpArea || 0}%</span>
+                      </div>
+                      <Progress value={data.urban.builtUpArea || 0} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.landCover && (
+              <Card className="border-2 border-purple-500/30 bg-purple-500/5 shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2.5 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 shadow-md">
+                      <Mountain className="w-5 h-5 text-white" />
+                    </div>
+                    <Badge variant="outline" className="text-purple-600 border-purple-500">
+                      Mixed
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Land Cover</h3>
+                    <div className="space-y-1.5 text-xs">
+                      {Object.entries(data.landCover)
+                        .filter(([_, value]) => value > 0)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 3)
+                        .map(([key, value]) => (
+                          <div key={key} className="flex justify-between items-center">
+                            <span className="capitalize text-muted-foreground">
+                              {key.replace(/([A-Z])/g, " $1").trim()}
+                            </span>
+                            <span className="font-mono font-bold text-foreground">{value.toFixed(0)}%</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
-        </Card>
-      )}
+
+          {data.landCover && (
+            <Card className="border-primary/10 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  Detailed Land Cover Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(data.landCover).map(([key, value]) => (
+                    <div key={key} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium capitalize">
+                          {key.replace(/([A-Z])/g, " $1").trim()}
+                        </span>
+                        <span className="text-sm font-mono font-bold text-primary">{value.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={value} className="h-2.5" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {data.features && data.features.length > 0 && (
+            <Card className="border-primary/10 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Target className="w-5 h-5 text-primary" />
+                  Notable Features Detected ({data.features.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {data.features.map((feature, i) => (
+                    <Card
+                      key={i}
+                      className={`border-2 ${getSeverityColor(feature.severity)} hover:shadow-lg transition-shadow`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-bold text-base flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-primary" />
+                            {feature.type}
+                          </h4>
+                          {feature.severity && (
+                            <Badge className={getSeverityBadgeColor(feature.severity)} variant="outline">
+                              {feature.severity}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+            {data.insights && data.insights.length > 0 && (
+              <Card className="border-blue-500/20 shadow-xl bg-gradient-to-br from-blue-500/5 to-background">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Sparkles className="w-5 h-5 text-blue-600" />
+                    Key Insights ({data.insights.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[400px] pr-4">
+                    <div className="space-y-3">
+                      {data.insights.map((insight, i) => (
+                        <div key={i} className="flex gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold">
+                            {i + 1}
+                          </div>
+                          <p className="text-sm leading-relaxed text-foreground/90">{insight}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.recommendations && data.recommendations.length > 0 && (
+              <Card className="border-emerald-500/20 shadow-xl bg-gradient-to-br from-emerald-500/5 to-background">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    Recommendations ({data.recommendations.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[400px] pr-4">
+                    <div className="space-y-3">
+                      {data.recommendations.map((rec, i) => (
+                        <div key={i} className="flex gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white flex items-center justify-center text-xs font-bold">
+                            {i + 1}
+                          </div>
+                          <p className="text-sm leading-relaxed text-foreground/90">{rec}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+            {data.vegetation?.types && data.vegetation.types.length > 0 && (
+              <Card className="border-primary/10 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <TreeDeciduous className="w-4 h-4 text-emerald-600" />
+                    Vegetation Types
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {data.vegetation.types.map((type, i) => (
+                      <Badge key={i} variant="secondary" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                        {type}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.waterBodies?.sources && data.waterBodies.sources.length > 0 && (
+              <Card className="border-primary/10 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Droplet className="w-4 h-4 text-blue-600" />
+                    Water Sources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {data.waterBodies.sources.map((source, i) => (
+                      <Badge key={i} variant="secondary" className="bg-blue-500/10 text-blue-700 border-blue-500/30">
+                        {source}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.urban?.infrastructure && data.urban.infrastructure.length > 0 && (
+              <Card className="border-primary/10 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Factory className="w-4 h-4 text-orange-600" />
+                    Infrastructure
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {data.urban.infrastructure.map((infra, i) => (
+                      <Badge key={i} variant="secondary" className="bg-orange-500/10 text-orange-700 border-orange-500/30">
+                        {infra}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data.environmental && (
+              <Card className="border-primary/10 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Heart className="w-4 h-4 text-pink-600" />
+                    Environmental Indicators
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    {data.environmental.airQuality && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Air Quality</span>
+                        <span className="font-medium">{data.environmental.airQuality}</span>
+                      </div>
+                    )}
+                    {data.environmental.temperature !== null && data.environmental.temperature !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Temperature</span>
+                        <span className="font-medium">{data.environmental.temperature}°C</span>
+                      </div>
+                    )}
+                    {data.environmental.humidity !== null && data.environmental.humidity !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Humidity</span>
+                        <span className="font-medium">{data.environmental.humidity}%</span>
+                      </div>
+                    )}
+                    {data.environmental.cloudCover !== null && data.environmental.cloudCover !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cloud Cover</span>
+                        <span className="font-medium">{data.environmental.cloudCover}%</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };

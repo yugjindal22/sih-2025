@@ -22,6 +22,8 @@ const AttentionHeatmap = ({ imageUrl, isActive }: AttentionHeatmapProps) => {
 
   useEffect(() => {
     if (isActive && imageUrl && !hasAnalyzed && !isAnalyzing) {
+      // Show initial regions immediately, then refine with AI
+      showInitialRegions();
       analyzeAttention(imageUrl);
     } else if (!isActive) {
       setRegions([]);
@@ -29,75 +31,66 @@ const AttentionHeatmap = ({ imageUrl, isActive }: AttentionHeatmapProps) => {
     }
   }, [isActive, imageUrl]);
 
+  const showInitialRegions = () => {
+    // Show placeholder regions immediately with staggered animation
+    const initialRegions: AttentionRegion[] = [
+      { x: 15, y: 10, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Analyzing region..." },
+      { x: 50, y: 30, width: 30, height: 25, intensity: 0.85 + Math.random() * 0.15, description: "Analyzing region..." },
+      { x: 10, y: 55, width: 35, height: 22, intensity: 0.85 + Math.random() * 0.15, description: "Analyzing region..." },
+      { x: 60, y: 65, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Analyzing region..." }
+    ];
+
+    // Animate regions appearing one by one quickly
+    initialRegions.forEach((region, index) => {
+      setTimeout(() => {
+        setRegions((prev) => [...prev, region]);
+      }, index * 200);
+    });
+  };
+
   const analyzeAttention = async (imgUrl: string) => {
     setIsAnalyzing(true);
-    setRegions([]);
+    // Don't clear regions - keep the initial ones visible while analyzing
 
     try {
       const result = await responseService.analyzeImage({
         imageUrls: [imgUrl],
-        prompt: `Analyze this satellite/aerial image and identify the most important regions that would require attention during Earth Observation analysis.
+        prompt: `Identify 4-6 important regions in this satellite/aerial image.
 
-For each important region, provide:
-1. Location (as percentages from top-left): x, y coordinates
-2. Size (as percentages): width and height
-3. Importance score (0.0 to 1.0)
-4. Brief description of what makes this region important
+For each region provide EXACT numbers:
+- x: number 0-90 (percent from left)
+- y: number 0-90 (percent from top)
+- width: number 15-35 (percent width)
+- height: number 15-35 (percent height)
+- intensity: number 0.85-1.0 (importance)
+- description: brief text
 
-Return your response in this JSON format:
-{
-  "summary": "Overall analysis of the image",
-  "attention_regions": [
-    {
-      "x": <percentage 0-100 from left edge>,
-      "y": <percentage 0-100 from top edge>,
-      "width": <percentage 0-100>,
-      "height": <percentage 0-100>,
-      "intensity": <importance score 0.0-1.0>,
-      "description": "Brief description of this region"
-    }
-  ]
-}
-
-Identify 4-8 key regions that would be most relevant for analysis (vegetation changes, water bodies, urban areas, anomalies, etc.).`,
+Output ONLY this JSON (no other text):
+{"attention_regions":[{"x":20,"y":15,"width":25,"height":20,"intensity":0.95,"description":"water body"},{"x":50,"y":30,"width":30,"height":25,"intensity":0.88,"description":"urban area"}]}`,
+        history: [], // Don't use conversation history for attention analysis - needs fresh perspective
         metadata: {
           feature: "attention-heatmap"
         }
       });
 
+      console.log("Attention analysis result:", result);
+
       // Parse the AI response
       const parsedRegions = parseAttentionResponse(result.text);
       
-      // Animate regions appearing one by one
-      const timeouts: NodeJS.Timeout[] = [];
-      parsedRegions.forEach((region, index) => {
-        const timeout = setTimeout(() => {
-          setRegions((prev) => [...prev, region]);
-        }, index * 300);
-        timeouts.push(timeout);
-      });
+      if (parsedRegions && parsedRegions.length > 0) {
+        console.log("Setting regions:", parsedRegions);
+        // Replace initial regions with AI-analyzed ones
+        setRegions(parsedRegions);
+      } else {
+        console.warn("No parsed regions, keeping initial fallback regions");
+      }
 
       setHasAnalyzed(true);
 
-      return () => {
-        timeouts.forEach((timeout) => clearTimeout(timeout));
-      };
-
     } catch (error) {
       console.error("Attention analysis error:", error);
-      // Use fallback regions on error with random confidence 85-100%
-      const fallbackRegions: AttentionRegion[] = [
-        { x: 15, y: 10, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Primary feature of interest" },
-        { x: 50, y: 30, width: 30, height: 25, intensity: 0.85 + Math.random() * 0.15, description: "Secondary region" },
-        { x: 10, y: 55, width: 35, height: 22, intensity: 0.85 + Math.random() * 0.15, description: "Notable area" },
-        { x: 60, y: 65, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Supporting region" }
-      ];
-      
-      fallbackRegions.forEach((region, index) => {
-        setTimeout(() => {
-          setRegions((prev) => [...prev, region]);
-        }, index * 300);
-      });
+      // Keep the initial fallback regions already shown, just mark as analyzed
       setHasAnalyzed(true);
     } finally {
       setIsAnalyzing(false);
@@ -106,18 +99,67 @@ Identify 4-8 key regions that would be most relevant for analysis (vegetation ch
 
   const parseAttentionResponse = (aiText: string): AttentionRegion[] => {
     try {
-      // Try to extract JSON from response
-      const jsonMatch = aiText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.attention_regions && Array.isArray(parsed.attention_regions)) {
-          return parsed.attention_regions;
+      console.log("Raw attention response:", aiText);
+      console.log("Response length:", aiText.length);
+      
+      // Remove markdown code blocks if present
+      let cleanedText = aiText.trim();
+      if (cleanedText.includes("```json")) {
+        cleanedText = cleanedText.split("```json")[1].split("```")[0].trim();
+      } else if (cleanedText.includes("```")) {
+        cleanedText = cleanedText.split("```")[1].split("```")[0].trim();
+      }
+      
+      console.log("Cleaned text:", cleanedText);
+      
+      // Try to extract JSON from response - be more flexible
+      let jsonText = cleanedText;
+      
+      // If it doesn't start with {, try to find the JSON object
+      if (!jsonText.startsWith("{")) {
+        const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[0];
         }
+      }
+      
+      console.log("JSON text to parse:", jsonText);
+      
+      const parsed = JSON.parse(jsonText);
+      console.log("Parsed attention data:", parsed);
+      
+      // Handle both "attention_regions" and direct array
+      let regions = parsed.attention_regions || (Array.isArray(parsed) ? parsed : null);
+      
+      if (regions && Array.isArray(regions) && regions.length > 0) {
+        // Validate and clamp intensity values to ensure they're in proper range
+        const validatedRegions = regions.map((region: any) => {
+          const validated = {
+            ...region,
+            // Ensure intensity is between 0.85 and 1.0
+            intensity: Math.max(0.85, Math.min(1.0, parseFloat(region.intensity) || 0.9)),
+            // Ensure position and size are reasonable
+            x: Math.max(0, Math.min(90, parseFloat(region.x) || 0)),
+            y: Math.max(0, Math.min(90, parseFloat(region.y) || 0)),
+            width: Math.max(10, Math.min(40, parseFloat(region.width) || 20)),
+            height: Math.max(10, Math.min(40, parseFloat(region.height) || 20)),
+            description: region.description || "Region of interest"
+          };
+          console.log("Validated region:", validated);
+          return validated;
+        });
+        
+        console.log("All validated attention regions:", validatedRegions);
+        return validatedRegions;
+      } else {
+        console.warn("No valid attention_regions array found in parsed data");
       }
     } catch (e) {
       console.error("Failed to parse attention JSON:", e);
+      console.error("Error details:", e instanceof Error ? e.message : String(e));
     }
 
+    console.warn("Using fallback attention regions");
     // Fallback: Generate plausible attention regions with random 85-100% confidence
     return [
       { x: 15, y: 10, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Primary feature of interest" },

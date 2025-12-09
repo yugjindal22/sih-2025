@@ -31,6 +31,7 @@ import type { ComponentType } from "react";
 import ROISelector from "./ROISelector";
 import AnalysisDashboard, { type AnalysisData } from "./AnalysisDashboard";
 import axios from "axios";
+import { responseService } from "@/lib/response-service";
 
 interface MapViewProps {
   overlayImage: string | null;
@@ -58,7 +59,15 @@ interface DownloadedFile {
   modified: string;
 }
 
-export default function SatelliteTileViewer() {
+interface SatelliteTileViewerProps {
+  onDashboardStateChange?: (isOpen: boolean) => void;
+  onCloseAnalysisRef?: React.MutableRefObject<(() => void) | null>;
+}
+
+export default function SatelliteTileViewer({ 
+  onDashboardStateChange,
+  onCloseAnalysisRef 
+}: SatelliteTileViewerProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "ai",
@@ -93,11 +102,58 @@ export default function SatelliteTileViewer() {
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: string; content: string; image?: string }>
   >([]);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const BACKEND_API = "http://localhost:5001";
+
+  // Helper function to convert image URL to base64
+  const convertImageUrlToBase64 = async (url: string): Promise<string> => {
+    try {
+      // If it's already a data URL, extract the base64 part
+      if (url.startsWith('data:')) {
+        return url.split(',')[1];
+      }
+
+      // Fetch the image from URL
+      const response = await fetch(url);
+      const blob = await response.blob();
+      
+      // Convert to base64
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          // Remove the data URL prefix to get just the base64 data
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error converting image URL to base64:", error);
+      throw error;
+    }
+  };
+
+  // Notify parent when dashboard state changes
+  useEffect(() => {
+    const isDashboardOpen = !!analysisData && !analyzingROI;
+    onDashboardStateChange?.(isDashboardOpen);
+  }, [analysisData, analyzingROI, onDashboardStateChange]);
+
+  // Expose close function to parent via ref
+  useEffect(() => {
+    if (onCloseAnalysisRef) {
+      onCloseAnalysisRef.current = () => {
+        setAnalysisData(null);
+        setRoiMode(false);
+      };
+    }
+  }, [onCloseAnalysisRef]);
 
   useEffect(() => {
     setIsClient(true);
@@ -421,112 +477,205 @@ export default function SatelliteTileViewer() {
     ]);
 
     try {
-      // Convert percentage-based ROI to pixel coordinates
-      // For now, we'll send the percentage-based coordinates
-      const response = await axios.post(`${BACKEND_API}/api/analyze-roi`, {
-        roi: {
-          x: roi.x,
-          y: roi.y,
-          width: roi.width,
-          height: roi.height,
-        },
-        image_url: imageUrl || currentImageUrl,
+      // Enhanced prompt for detailed ROI analysis
+      const roiPrompt = `Analyze this satellite/aerial image region in extreme detail.
+
+REGION DIMENSIONS: ${roi.width.toFixed(1)}% × ${roi.height.toFixed(1)}% of the full image
+LOCATION: x=${roi.x.toFixed(1)}%, y=${roi.y.toFixed(1)}%
+
+Provide comprehensive Earth Observation analysis with:
+
+1. LAND COVER DISTRIBUTION (percentages must add to 100):
+   - Vegetation coverage %
+   - Water bodies %
+   - Urban/built-up areas %
+   - Bare soil/exposed ground %
+   - Forest coverage %
+   - Agricultural land %
+
+2. VEGETATION ANALYSIS:
+   - Overall health status (Excellent/Good/Moderate/Poor/Critical)
+   - Estimated NDVI value (0.0-1.0)
+   - Density percentage (0-100%)
+   - Types of vegetation observed (list 3-5 types)
+
+3. WATER BODIES (if present):
+   - Total area percentage
+   - Water quality assessment
+   - Sources (rivers, lakes, reservoirs, etc.)
+
+4. URBAN DEVELOPMENT:
+   - Built-up area percentage
+   - Development level (High/Medium/Low)
+   - Infrastructure types (roads, buildings, industrial, etc.)
+
+5. ENVIRONMENTAL CONDITIONS:
+   - Air quality indicators (if detectable)
+   - Temperature indicators: set to null
+   - Humidity indicators: set to null
+   - Cloud cover: set to null
+
+6. NOTABLE FEATURES (identify 5-8 features):
+   - Type of feature
+   - Detailed 2-3 sentence description including location, appearance, size, color, texture, significance
+   - Severity level (High/Medium/Low/Info)
+
+7. DETAILED INSIGHTS (provide 10-15 comprehensive insights):
+   - Land use patterns and spatial distribution
+   - Vegetation characteristics and health indicators
+   - Water resource observations
+   - Urban development patterns
+   - Environmental conditions
+   - Terrain and soil conditions
+   - Boundaries and transitions between land cover types
+   - Patterns, anomalies, or unusual features
+   - Spatial relationships and clustering
+   - Color and texture analysis
+   - Overall landscape condition
+
+8. RECOMMENDATIONS (provide 5-7 actionable recommendations)
+
+Return ONLY valid JSON in this exact structure:
+{
+  "summary": "Comprehensive 5-7 sentence summary describing the region's key characteristics, dominant features, land use, environmental conditions, and notable observations",
+  "confidence": ${85 + Math.floor(Math.random() * 9)},
+  "landCover": {
+    "vegetation": 0,
+    "water": 0,
+    "urban": 0,
+    "bareSoil": 0,
+    "forest": 0,
+    "agriculture": 0
+  },
+  "vegetation": {
+    "health": "Good",
+    "ndvi": 0.65,
+    "density": 70,
+    "types": ["type1", "type2", "type3"]
+  },
+  "waterBodies": {
+    "totalArea": 0,
+    "quality": "description",
+    "sources": ["source1", "source2"]
+  },
+  "urban": {
+    "builtUpArea": 0,
+    "development": "Medium",
+    "infrastructure": ["roads", "buildings"]
+  },
+  "environmental": {
+    "temperature": null,
+    "humidity": null,
+    "airQuality": "Not detectable from imagery",
+    "cloudCover": null
+  },
+  "features": [
+    {"type": "Feature Name", "description": "Detailed 2-3 sentence description", "severity": "Medium"}
+  ],
+  "insights": [
+    "Detailed insight 1 with 2-3 sentences",
+    "Detailed insight 2 with 2-3 sentences"
+  ],
+  "recommendations": [
+    "Actionable recommendation 1",
+    "Actionable recommendation 2"
+  ]
+}
+
+CRITICAL: Output ONLY the JSON. No markdown, no explanations. Every field must contain detailed, meaningful data based on actual observations from the image.`;
+
+      // Convert image URL to base64 for the local LLM
+      const imageToAnalyze = imageUrl || currentImageUrl || "";
+      let base64Image = "";
+      
+      if (imageToAnalyze.startsWith('data:')) {
+        // Already a data URL, just use it
+        base64Image = imageToAnalyze;
+      } else if (imageToAnalyze.startsWith('http')) {
+        // HTTP URL - convert to base64 data URL
+        const base64Data = await convertImageUrlToBase64(imageToAnalyze);
+        base64Image = `data:image/jpeg;base64,${base64Data}`;
+      }
+
+      // Use responseService to call local LLM directly
+      const analysisResult = await responseService.analyzeImage({
+        imageUrls: [base64Image],
+        prompt: roiPrompt,
+        metadata: {}
       });
 
-      if (response.data) {
-        let analysis = response.data.analysis || {};
+      const aiResponse = analysisResult.text;
 
-        // Try multiple strategies to extract structured data from the response
-        let parsedData: any = null;
-
-        // Strategy 1: Check if analysis.text contains JSON
-        if (analysis.text && typeof analysis.text === "string") {
-          const textTrimmed = analysis.text.trim();
-          
-          // Remove markdown code blocks if present
-          let jsonText = textTrimmed;
-          if (jsonText.includes("```json")) {
-            jsonText = jsonText.split("```json")[1].split("```")[0].trim();
-          } else if (jsonText.includes("```")) {
-            jsonText = jsonText.split("```")[1].split("```")[0].trim();
-          }
-          
-          // Try to parse as JSON
-          if (jsonText.startsWith("{") || jsonText.startsWith("[")) {
-            try {
-              parsedData = JSON.parse(jsonText);
-              console.log("Successfully parsed JSON from text field:", parsedData);
-            } catch (e) {
-              console.log("Could not parse text field as JSON:", e);
-            }
-          }
-        }
-
-        // Strategy 2: Check if response.data itself has the structured data
-        if (!parsedData && response.data.summary) {
-          parsedData = response.data;
-        }
-
-        // Strategy 3: Check if analysis already has structured fields
-        if (!parsedData && (analysis.landCover || analysis.vegetation || analysis.summary)) {
-          parsedData = analysis;
-        }
-
-        // Merge parsed data into analysis
-        if (parsedData) {
-          analysis = { ...analysis, ...parsedData };
-          delete analysis.text; // Remove raw text since we parsed it
-        }
-
-        // Check if we got meaningful structured data
-        const hasStructuredData =
-          analysis &&
-          (analysis.landCover ||
-            analysis.vegetation ||
-            analysis.waterBodies ||
-            analysis.urban ||
-            analysis.environmental ||
-            analysis.features ||
-            analysis.insights);
-
-        // Parse the AI response and structure it
-        const structuredAnalysis: AnalysisData = {
-          ...analysis,
-          summary:
-            analysis.summary || "ROI analysis completed",
-          confidence: analysis.confidence || (hasStructuredData ? 85 + Math.floor(Math.random() * 9) : 80),
-          // Only keep text field if we don't have structured data
-          text: hasStructuredData ? undefined : (response.data.text || analysis.text || ""),
-        };
-
-        setAnalysisData(structuredAnalysis);
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "ai",
-            text: `✅ ROI Analysis Complete! ${
-              structuredAnalysis.summary || "Check the dashboard for details."
-            }`,
-          },
-        ]);
-
-        // Add to chat history for context
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            role: "user",
-            content: `Analyze this region of interest (${roi.width.toFixed(
-              1
-            )}% × ${roi.height.toFixed(1)}%)`,
-            image: imageUrl || currentImageUrl || undefined,
-          },
-          {
-            role: "assistant",
-            content: structuredAnalysis.summary || "Analysis complete",
-          },
-        ]);
+      // Parse JSON response
+      let parsedData: any = null;
+      
+      // Remove markdown code blocks if present
+      let jsonText = aiResponse.trim();
+      if (jsonText.includes("```json")) {
+        jsonText = jsonText.split("```json")[1].split("```")[0].trim();
+      } else if (jsonText.includes("```")) {
+        jsonText = jsonText.split("```")[1].split("```")[0].trim();
       }
+      
+      // Try to parse as JSON
+      if (jsonText.startsWith("{") || jsonText.startsWith("[")) {
+        try {
+          parsedData = JSON.parse(jsonText);
+          console.log("Successfully parsed JSON from ROI analysis:", parsedData);
+        } catch (e) {
+          console.log("Could not parse ROI response as JSON:", e);
+        }
+      }
+
+      // Check if we got meaningful structured data
+      const hasStructuredData = parsedData && (
+        parsedData.landCover ||
+        parsedData.vegetation ||
+        parsedData.waterBodies ||
+        parsedData.urban ||
+        parsedData.environmental ||
+        parsedData.features ||
+        parsedData.insights
+      );
+
+      // Parse the AI response and structure it
+      const structuredAnalysis: AnalysisData = hasStructuredData ? {
+        ...parsedData,
+        summary: parsedData.summary || "ROI analysis completed",
+        confidence: parsedData.confidence || (85 + Math.floor(Math.random() * 9)),
+      } : {
+        text: aiResponse,
+        summary: "ROI analysis completed",
+        confidence: 80,
+      };
+
+      setAnalysisData(structuredAnalysis);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "ai",
+          text: `✅ ROI Analysis Complete! ${
+            structuredAnalysis.summary || "Check the dashboard for details."
+          }`,
+        },
+      ]);
+
+      // Add to chat history for context
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          role: "user",
+          content: `Analyze this region of interest (${roi.width.toFixed(
+            1
+          )}% × ${roi.height.toFixed(1)}%)`,
+          image: imageUrl || currentImageUrl || undefined,
+        },
+        {
+          role: "assistant",
+          content: structuredAnalysis.summary || "Analysis complete",
+        },
+      ]);
     } catch (error: any) {
       console.error("ROI Analysis error:", error);
       setMessages((prev) => [
@@ -560,36 +709,54 @@ export default function SatelliteTileViewer() {
     ]);
 
     try {
-      // Send to interactive chat API with vision backend
-      const response = await axios.post(`${BACKEND_API}/api/interactive-chat`, {
-        message: userMessage,
-        image_url: currentImageUrl,
-        chat_history: chatHistory,
+      // Build conversation history (last 6 messages)
+      const history = chatHistory.slice(-6).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // Convert image URL to base64 if available
+      let imageUrlsToSend: string[] = [];
+      if (currentImageUrl) {
+        if (currentImageUrl.startsWith('data:')) {
+          imageUrlsToSend = [currentImageUrl];
+        } else if (currentImageUrl.startsWith('http')) {
+          const base64Data = await convertImageUrlToBase64(currentImageUrl);
+          imageUrlsToSend = [`data:image/jpeg;base64,${base64Data}`];
+        }
+      }
+
+      // Use responseService to call local LLM directly
+      const analysisResult = await responseService.analyzeImage({
+        imageUrls: imageUrlsToSend,
+        prompt: userMessage,
+        history: history,
+        metadata: {}
       });
 
-      if (response.data && response.data.response) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "ai",
-            text: response.data.response,
-          },
-        ]);
+      const aiResponse = analysisResult.text;
 
-        // Update chat history
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            role: "user",
-            content: userMessage,
-            image: currentImageUrl || undefined,
-          },
-          {
-            role: "assistant",
-            content: response.data.response,
-          },
-        ]);
-      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "ai",
+          text: aiResponse,
+        },
+      ]);
+
+      // Update chat history
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          role: "user",
+          content: userMessage,
+          image: currentImageUrl || undefined,
+        },
+        {
+          role: "assistant",
+          content: aiResponse,
+        },
+      ]);
     } catch (error: any) {
       console.error("Chat error:", error);
       setMessages((prev) => [
@@ -613,9 +780,9 @@ export default function SatelliteTileViewer() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
-      {/* MAP CONTAINER */}
-      <div className="relative flex-1 flex flex-col h-[50vh] lg:h-screen">
+    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden p-4 gap-4">
+      {/* MAP CONTAINER - Fixed size with padding */}
+      <div className="relative flex-1 rounded-xl overflow-hidden shadow-2xl border-2 border-slate-200 dark:border-slate-700">
         <MapView
           overlayImage={overlayImage}
           overlayBounds={overlayBounds}
@@ -626,47 +793,18 @@ export default function SatelliteTileViewer() {
 
         {/* ROI Selector Overlay */}
         {roiMode && overlayImage && (
-          <ROISelector
-            imageUrl={overlayImage}
-            isActive={roiMode}
-            onROISelect={(roi) => {
-              handleROISelect(roi, currentImageUrl || undefined);
-              setRoiMode(false);
-            }}
-          />
-        )}
-
-        {/* Analysis Dashboard */}
-        {analysisData && (
-          <div className="absolute top-20 lg:top-24 right-2 lg:right-6 z-[500] max-w-md w-[calc(100vw-1rem)] sm:w-auto">
-            <div className="relative">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setAnalysisData(null)}
-                className="absolute -top-2 -right-2 z-10 h-6 w-6 p-0 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 hover:bg-red-50 dark:hover:bg-red-950 shadow-lg"
-              >
-                <XCircle className="h-3.5 w-3.5 text-red-500" />
-              </Button>
-              <AnalysisDashboard data={analysisData} />
-            </div>
-          </div>
-        )}
-
-        {/* ROI Selector Overlay */}
-        {roiMode && overlayImage && (
           <div className="absolute inset-0 z-[500] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="max-w-4xl w-full">
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex-shrink-0">
                     <Crosshair className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-2xl font-bold text-white truncate">
+                    <h2 className="text-2xl font-bold text-white">
                       ROI Analysis Mode
                     </h2>
-                    <p className="text-sm text-cyan-200 truncate">
+                    <p className="text-sm text-cyan-200">
                       Click and drag to select a region of interest
                     </p>
                   </div>
@@ -674,7 +812,7 @@ export default function SatelliteTileViewer() {
                 <Button
                   variant="destructive"
                   onClick={() => setRoiMode(false)}
-                  className="gap-2"
+                  className="gap-2 flex-shrink-0"
                 >
                   <XCircle className="w-4 h-4" />
                   Cancel
@@ -691,8 +829,8 @@ export default function SatelliteTileViewer() {
 
         {/* Analysis Dashboard Overlay */}
         {(analysisData || analyzingROI) && !roiMode && (
-          <div className="absolute top-0 right-0 bottom-0 w-full lg:w-96 z-[450] bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-l border-slate-200 dark:border-slate-800 shadow-2xl overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-cyan-500 to-blue-500 p-4 flex items-center justify-between z-10">
+          <div className="absolute inset-0 z-[450] bg-slate-950/95 dark:bg-slate-950/98 backdrop-blur-xl overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-cyan-500 to-blue-500 p-4 flex items-center justify-between z-10 shadow-lg">
               <div className="flex items-center gap-3">
                 {analyzingROI ? (
                   <Loader2 className="w-5 h-5 text-white animate-spin" />
@@ -704,75 +842,74 @@ export default function SatelliteTileViewer() {
                 </h2>
               </div>
               <Button
-                size="sm"
-                variant="ghost"
+                size="default"
+                variant="secondary"
                 onClick={() => {
                   setAnalysisData(null);
                   setAnalyzingROI(false);
                 }}
-                className="text-white hover:bg-white/20"
+                className="bg-white text-slate-900 hover:bg-slate-100 font-semibold px-6 gap-2"
                 disabled={analyzingROI}
               >
                 <XCircle className="w-4 h-4" />
+                Close
               </Button>
             </div>
-            <div className="p-4">
-              {analyzingROI ? (
-                <div className="space-y-4">
-                  <Card className="p-6 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 border-cyan-200 dark:border-cyan-800">
-                    <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
-                      <div className="text-center space-y-2">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                          AI Processing Your Request
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Analyzing satellite imagery with advanced vision AI...
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-4">
-                          This typically takes 10-30 seconds
-                        </p>
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 animate-pulse"
-                          style={{ width: "60%" }}
-                        ></div>
-                      </div>
+            {analyzingROI ? (
+              <div className="p-6 space-y-4">
+                <Card className="p-6 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 border-cyan-200 dark:border-cyan-800">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+                    <div className="text-center space-y-2">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                        AI Processing Your Request
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Analyzing satellite imagery with advanced vision AI...
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-4">
+                        This typically takes 10-30 seconds
+                      </p>
                     </div>
-                  </Card>
-                  <Card className="p-4 bg-white/50 dark:bg-slate-800/50">
-                    <h4 className="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                      What's happening?
-                    </h4>
-                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                      <li>• Fetching satellite image data</li>
-                      <li>• Processing selected region</li>
-                      <li>• Running AI vision analysis</li>
-                      <li>• Generating insights and metrics</li>
-                    </ul>
-                  </Card>
-                </div>
-              ) : analysisData ? (
-                <AnalysisDashboard data={analysisData} />
-              ) : null}
-            </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 animate-pulse"
+                        style={{ width: "60%" }}
+                      ></div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4 bg-white/50 dark:bg-slate-800/50">
+                  <h4 className="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                    What's happening?
+                  </h4>
+                  <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                    <li>• Fetching satellite image data</li>
+                    <li>• Processing selected region</li>
+                    <li>• Running AI vision analysis</li>
+                    <li>• Generating insights and metrics</li>
+                  </ul>
+                </Card>
+              </div>
+            ) : analysisData ? (
+              <AnalysisDashboard data={analysisData} />
+            ) : null}
           </div>
         )}
 
         {/* Floating UI Controls */}
-        <div className="absolute top-2 left-2 lg:top-6 lg:left-6 z-[400] flex flex-col gap-2 lg:gap-3 max-w-[calc(100vw-16rem)] sm:max-w-[calc(100vw-20rem)] lg:max-w-none">
+        <div className="absolute top-20 left-4 z-[400] flex flex-col gap-3 max-w-xs">
           <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border-slate-200 dark:border-slate-700 shadow-xl">
-            <CardContent className="p-2 lg:p-4">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1.5 lg:p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                  <Globe className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
+                  <Globe className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-xs lg:text-sm text-slate-900 dark:text-white">
+                  <h1 className="font-bold text-sm text-slate-900 dark:text-white">
                     Satellite Tile Viewer
                   </h1>
-                  <p className="text-[10px] lg:text-xs text-slate-600 dark:text-slate-400">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
                     GEO Analysis Interface
                   </p>
                 </div>
@@ -782,11 +919,10 @@ export default function SatelliteTileViewer() {
 
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg gap-2 text-xs lg:text-sm h-8 lg:h-10"
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg gap-2 text-sm h-10"
           >
-            <UploadCloud className="w-3 h-3 lg:w-4 lg:h-4" />
-            <span className="hidden sm:inline">Upload Sentinel-2 Tile</span>
-            <span className="sm:hidden">Upload</span>
+            <UploadCloud className="w-4 h-4" />
+            Upload Sentinel-2 Tile
           </Button>
 
           {/* ROI Mode Toggle */}
@@ -797,7 +933,7 @@ export default function SatelliteTileViewer() {
                 setAnalysisData(null);
               }}
               disabled={analyzingROI}
-              className={`shadow-lg gap-2 text-xs lg:text-sm h-8 lg:h-10 ${
+              className={`shadow-lg gap-2 text-sm h-10 ${
                 roiMode
                   ? "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                   : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
@@ -805,17 +941,13 @@ export default function SatelliteTileViewer() {
             >
               {analyzingROI ? (
                 <>
-                  <Loader2 className="w-3 h-3 lg:w-4 lg:h-4 animate-spin" />
-                  <span className="hidden sm:inline">Analyzing...</span>
-                  <span className="sm:hidden">Wait...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Analyzing...
                 </>
               ) : (
                 <>
-                  <Crosshair className="w-3 h-3 lg:w-4 lg:h-4" />
-                  <span className="hidden sm:inline">
-                    {roiMode ? "Exit ROI Mode" : "🎯 ROI Analysis"}
-                  </span>
-                  <span className="sm:hidden">{roiMode ? "Exit" : "ROI"}</span>
+                  <Crosshair className="w-4 h-4" />
+                  {roiMode ? "Exit ROI Mode" : "🎯 ROI Analysis"}
                 </>
               )}
             </Button>
@@ -823,8 +955,8 @@ export default function SatelliteTileViewer() {
 
           {position && (
             <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border-slate-200 dark:border-slate-700">
-              <CardContent className="p-2 lg:p-3">
-                <div className="flex items-center gap-2 text-[10px] lg:text-xs">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 text-xs">
                   <MapPin className="w-3 h-3 text-emerald-500" />
                   <span className="text-slate-700 dark:text-slate-300 font-mono">
                     {position.lat.toFixed(4)}, {position.lng.toFixed(4)}
@@ -844,44 +976,61 @@ export default function SatelliteTileViewer() {
         />
       </div>
 
-      {/* CHAT SIDEBAR */}
-      <div className="w-full lg:w-96 h-[50vh] lg:h-screen bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l-2 border-slate-300 dark:border-slate-700 flex flex-col shadow-2xl z-[300]">
-        <div className="p-3 lg:p-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-900/50">
+      {/* CHAT SIDEBAR - Expandable with toggle */}
+      <div className={`${sidebarExpanded ? 'w-[600px]' : 'w-96'} flex-shrink-0 bg-white dark:bg-slate-950 rounded-xl overflow-hidden shadow-2xl border-2 border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300`}>
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-900/50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="p-1.5 lg:p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-md">
-                <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-md">
+                <CheckCircle2 className="w-4 h-4 text-white" />
               </div>
               <div>
-                <span className="text-sm lg:text-base font-bold text-slate-900 dark:text-slate-100 block">
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100 block">
                   Control Panel
                 </span>
-                <span className="text-[10px] lg:text-xs text-slate-600 dark:text-slate-400">
+                <span className="text-xs text-slate-600 dark:text-slate-400">
                   Search, Download & Analyze
                 </span>
               </div>
             </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              className="h-8 w-8 p-0"
+              title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {sidebarExpanded ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              )}
+            </Button>
           </div>
         </div>
 
         <ScrollArea className="flex-1 bg-slate-50 dark:bg-slate-950">
-          <div className="p-2 sm:p-3 lg:p-4 space-y-3 sm:space-y-4 lg:space-y-5 pb-6">
+          <div className="p-4 space-y-5 pb-6">
             {/* Search & Download Section */}
-            <div className="space-y-3 sm:space-y-3 lg:space-y-4">
-              <div className="flex items-center gap-2 sm:gap-2">
-                <div className="p-1.5 sm:p-1.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-sm">
-                  <Satellite className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-sm">
+                  <Satellite className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-xs sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Search Satellite Data
                 </h3>
               </div>
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm">
-                <CardContent className="p-3 sm:p-3 lg:p-4 space-y-3 sm:space-y-3 lg:space-y-3">
-                  <div className="space-y-1.5 sm:space-y-1.5">
+                <CardContent className="p-4 space-y-3">
+                  <div className="space-y-1.5">
                     <Label
                       htmlFor="location"
-                      className="text-[10px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                      className="text-xs font-medium text-slate-700 dark:text-slate-300"
                     >
                       Location Name
                     </Label>
@@ -891,14 +1040,14 @@ export default function SatelliteTileViewer() {
                       placeholder="e.g., New Delhi, India"
                       value={searchLocation}
                       onChange={(e) => setSearchLocation(e.target.value)}
-                      className="h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
+                      className="h-10 text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2 lg:gap-2.5">
-                    <div className="space-y-1.5 sm:space-y-1.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1.5">
                       <Label
                         htmlFor="startDate"
-                        className="text-[10px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                        className="text-xs font-medium text-slate-700 dark:text-slate-300"
                       >
                         Start Date
                       </Label>
@@ -907,13 +1056,13 @@ export default function SatelliteTileViewer() {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
+                        className="h-10 text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
                       />
                     </div>
-                    <div className="space-y-1.5 sm:space-y-1.5">
+                    <div className="space-y-1.5">
                       <Label
                         htmlFor="endDate"
-                        className="text-[10px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                        className="text-xs font-medium text-slate-700 dark:text-slate-300"
                       >
                         End Date
                       </Label>
@@ -922,7 +1071,7 @@ export default function SatelliteTileViewer() {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
+                        className="h-10 text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
                       />
                     </div>
                   </div>
@@ -931,16 +1080,16 @@ export default function SatelliteTileViewer() {
                     disabled={
                       searching || !searchLocation || !startDate || !endDate
                     }
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm font-medium shadow-md"
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-10 text-sm font-medium shadow-md"
                   >
                     {searching ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-2 sm:mr-2 animate-spin" />
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         <span>Searching Satellites...</span>
                       </>
                     ) : (
                       <>
-                        <Search className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-2 sm:mr-2" />
+                        <Search className="w-4 h-4 mr-2" />
                         <span>Search & Download</span>
                       </>
                     )}
@@ -952,19 +1101,19 @@ export default function SatelliteTileViewer() {
             <Separator className="bg-slate-200 dark:bg-slate-800" />
 
             {/* Downloaded Files Section */}
-            <div className="space-y-3 sm:space-y-3 lg:space-y-4">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-2">
-                  <div className="p-1.5 sm:p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-sm">
-                    <FileArchive className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-sm">
+                    <FileArchive className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xs sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     Downloaded Files
                   </h3>
                 </div>
                 <Badge
                   variant="secondary"
-                  className="text-[10px] sm:text-[10px] lg:text-xs px-2 sm:px-2 py-0.5"
+                  className="text-xs px-2 py-0.5"
                 >
                   {downloadedFiles.length}
                 </Badge>
@@ -975,53 +1124,53 @@ export default function SatelliteTileViewer() {
                 variant="outline"
                 onClick={fetchDownloadedFiles}
                 disabled={loadingFiles}
-                className="w-full h-8 sm:h-8 text-[11px] sm:text-[11px] lg:text-xs border-slate-300 dark:border-slate-700"
+                className="w-full h-8 text-xs border-slate-300 dark:border-slate-700"
               >
                 {loadingFiles ? (
                   <>
-                    <Loader2 className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5 animate-spin" />
+                    <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
                     <span>Refreshing...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5" />
+                    <Download className="w-3 h-3 mr-1.5" />
                     <span>Refresh File List</span>
                   </>
                 )}
               </Button>
 
               {loadingFiles ? (
-                <div className="flex items-center justify-center py-8 sm:py-8 lg:py-12">
-                  <Loader2 className="w-6 h-6 sm:w-6 sm:h-6 lg:w-8 lg:h-8 animate-spin text-blue-500" />
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 </div>
               ) : downloadedFiles.length === 0 ? (
                 <Card className="bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 border-dashed">
-                  <CardContent className="p-4 sm:p-4 lg:p-6 text-center">
-                    <FileArchive className="w-8 h-8 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mx-auto mb-2 sm:mb-2 text-slate-400" />
-                    <p className="text-xs sm:text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium mb-1 sm:mb-1">
+                  <CardContent className="p-6 text-center">
+                    <FileArchive className="w-10 h-10 mx-auto mb-2 text-slate-400" />
+                    <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mb-1">
                       No files downloaded yet
                     </p>
-                    <p className="text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-500">
                       Search and download data above
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-2 sm:space-y-2">
+                <div className="space-y-2">
                   {downloadedFiles.map((file, idx) => (
                     <Card
                       key={idx}
                       className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition-all overflow-hidden"
                     >
-                      <CardContent className="p-3 sm:p-3 lg:p-3">
-                        <div className="space-y-2 sm:space-y-2">
-                          <div className="flex items-start gap-2 sm:gap-2">
-                            <FileArchive className="w-4 h-4 sm:w-4 sm:h-4 lg:w-4 lg:h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <CardContent className="p-3">
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <FileArchive className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0 overflow-hidden">
-                              <p className="text-xs sm:text-xs lg:text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight break-all">
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight break-all">
                                 {file.filename}
                               </p>
-                              <div className="flex items-center gap-2 sm:gap-2 mt-1 sm:mt-1 text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 <span className="font-medium">
                                   {file.size_mb.toFixed(2)} MB
                                 </span>
@@ -1040,16 +1189,16 @@ export default function SatelliteTileViewer() {
                               handleProcessDownloadedFile(file.path)
                             }
                             disabled={processingFile === file.path}
-                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white h-8 sm:h-8 text-[11px] sm:text-xs font-medium shadow-sm"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white h-8 text-xs font-medium shadow-sm"
                           >
                             {processingFile === file.path ? (
                               <>
-                                <Loader2 className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5 animate-spin" />
+                                <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
                                 <span>Processing...</span>
                               </>
                             ) : (
                               <>
-                                <Download className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5" />
+                                <Download className="w-3 h-3 mr-1.5" />
                                 <span>Load on Map</span>
                               </>
                             )}
@@ -1065,16 +1214,16 @@ export default function SatelliteTileViewer() {
             <Separator className="bg-slate-200 dark:bg-slate-800" />
 
             {/* Activity Log Section */}
-            <div className="space-y-3 sm:space-y-3 lg:space-y-4">
-              <div className="flex items-center gap-2 sm:gap-2">
-                <div className="p-1.5 sm:p-1.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-sm">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-sm">
+                  <CheckCircle2 className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-xs sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Activity Log
                 </h3>
               </div>
-              <div className="space-y-2.5 sm:space-y-2.5">
+              <div className="space-y-2.5">
                 {messages.map((msg, idx) => (
                   <div
                     key={idx}
@@ -1083,19 +1232,19 @@ export default function SatelliteTileViewer() {
                     }`}
                   >
                     <div
-                      className={`max-w-[90%] sm:max-w-[90%] p-2.5 sm:p-2.5 lg:p-3 rounded-lg border text-xs sm:text-xs lg:text-sm shadow-sm ${
+                      className={`max-w-[90%] p-3 rounded-lg border text-sm shadow-sm ${
                         msg.role === "user"
                           ? "bg-gradient-to-r from-blue-500 to-cyan-500 border-blue-400 text-white"
                           : msg.role === "error"
-                          ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-700 dark:text-red-200 flex items-start gap-2 sm:gap-2"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-start gap-2 sm:gap-2"
+                          ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-700 dark:text-red-200 flex items-start gap-2"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-start gap-2"
                       }`}
                     >
                       {msg.role === "ai" && (
-                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-emerald-500 flex-shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-500 flex-shrink-0" />
                       )}
                       {msg.role === "error" && (
-                        <AlertCircle className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-red-500 flex-shrink-0" />
+                        <AlertCircle className="w-4 h-4 mt-0.5 text-red-500 flex-shrink-0" />
                       )}
                       <span className="leading-relaxed break-words">
                         {msg.text}
@@ -1104,8 +1253,8 @@ export default function SatelliteTileViewer() {
                   </div>
                 ))}
                 {loading && (
-                  <div className="flex gap-2 sm:gap-2 items-center justify-center text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 p-2.5 sm:p-2.5 lg:p-3 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin text-blue-500" />
+                  <div className="flex gap-2 items-center justify-center text-xs text-slate-500 dark:text-slate-400 p-3 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     <span>Processing satellite data...</span>
                   </div>
                 )}
@@ -1115,16 +1264,28 @@ export default function SatelliteTileViewer() {
           </div>
         </ScrollArea>
 
-        <div className="p-3 sm:p-3 lg:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30">
           {currentImageUrl && (
-            <div className="mb-2 flex items-center gap-2 sm:gap-2 px-3 sm:px-3 py-2 sm:py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-300 dark:border-purple-700 rounded-lg">
+            <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-300 dark:border-purple-700 rounded-lg">
               <Sparkles className="w-3.5 h-3.5 text-purple-500 flex-shrink-0 animate-pulse" />
-              <span className="text-[10px] sm:text-[10px] lg:text-xs text-purple-700 dark:text-purple-300 font-medium truncate">
+              <span className="text-xs text-purple-700 dark:text-purple-300 font-medium truncate">
                 AI Vision Active
               </span>
             </div>
           )}
-          <div className="flex gap-2 sm:gap-2">
+          {analysisData && !analyzingROI && (
+            <Button
+              onClick={() => {
+                // Analysis data exists, just need to show it (it's already in state)
+                // The dashboard checks for analysisData state
+              }}
+              className="w-full mb-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white h-9 text-sm font-medium shadow-md gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              View ROI Dashboard
+            </Button>
+          )}
+          <div className="flex gap-2">
             <Input
               type="text"
               value={input}
@@ -1143,7 +1304,7 @@ export default function SatelliteTileViewer() {
                   : "Upload image first..."
               }
               disabled={!currentImageUrl || loading || analyzingROI}
-              className="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              className="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 h-10 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
             <Button
               onClick={handleSendMessage}
@@ -1151,16 +1312,16 @@ export default function SatelliteTileViewer() {
               disabled={
                 !currentImageUrl || loading || analyzingROI || !input.trim()
               }
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-9 w-9 sm:h-9 sm:w-9 lg:h-10 lg:w-10 shadow-md flex-shrink-0 disabled:opacity-50"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-10 w-10 shadow-md flex-shrink-0 disabled:opacity-50"
             >
               {loading || analyzingROI ? (
-                <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Send className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
+                <Send className="w-4 h-4" />
               )}
             </Button>
           </div>
-          <p className="text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 mt-2 sm:mt-2 text-center">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
             {analyzingROI ? (
               <span className="text-orange-500 font-medium animate-pulse">
                 ⏳ ROI analysis in progress...

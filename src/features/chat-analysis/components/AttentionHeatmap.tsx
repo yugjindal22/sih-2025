@@ -55,26 +55,30 @@ const AttentionHeatmap = ({ imageUrl, isActive }: AttentionHeatmapProps) => {
     try {
       const result = await responseService.analyzeImage({
         imageUrls: [imgUrl],
-        prompt: `You are an expert at analyzing satellite/aerial imagery. Identify 4-8 key regions in this image that are most important for Earth Observation analysis.
+        prompt: `Analyze this satellite/aerial image and identify the most important regions that would require attention during Earth Observation analysis.
 
-For EACH region, provide:
-- x: percentage from left edge (0-100)
-- y: percentage from top edge (0-100) 
-- width: percentage width (10-40)
-- height: percentage height (10-40)
-- intensity: importance score between 0.85-1.0 (use 0.95+ for very important, 0.90-0.94 for important, 0.85-0.89 for moderately important)
-- description: what makes this region significant
+For each important region, provide:
+1. Location (as percentages from top-left): x, y coordinates
+2. Size (as percentages): width and height
+3. Importance score (0.0 to 1.0)
+4. Brief description of what makes this region important
 
-Focus on: water bodies, vegetation zones, urban areas, land cover changes, geological features, anomalies.
-
-Return ONLY valid JSON in this EXACT format:
+Return your response in this JSON format:
 {
+  "summary": "Overall analysis of the image",
   "attention_regions": [
-    {"x": 20, "y": 15, "width": 25, "height": 20, "intensity": 0.95, "description": "Dense vegetation area with high NDVI"},
-    {"x": 55, "y": 35, "width": 30, "height": 25, "intensity": 0.88, "description": "Urban settlement with infrastructure"}
+    {
+      "x": <percentage 0-100 from left edge>,
+      "y": <percentage 0-100 from top edge>,
+      "width": <percentage 0-100>,
+      "height": <percentage 0-100>,
+      "intensity": <importance score 0.0-1.0>,
+      "description": "Brief description of this region"
+    }
   ]
-}`,
-        history: [], // Don't use conversation history for attention analysis - needs fresh perspective
+}
+
+Identify 4-8 key regions that would be most relevant for analysis (vegetation changes, water bodies, urban areas, anomalies, etc.).`,
         metadata: {
           feature: "attention-heatmap"
         }
@@ -83,10 +87,8 @@ Return ONLY valid JSON in this EXACT format:
       // Parse the AI response
       const parsedRegions = parseAttentionResponse(result.text);
       
-      if (parsedRegions && parsedRegions.length > 0) {
-        // Replace initial regions with AI-analyzed ones
-        setRegions(parsedRegions);
-      }
+      // Replace initial regions with AI-analyzed ones
+      setRegions(parsedRegions);
 
       setHasAnalyzed(true);
 
@@ -101,44 +103,18 @@ Return ONLY valid JSON in this EXACT format:
 
   const parseAttentionResponse = (aiText: string): AttentionRegion[] => {
     try {
-      console.log("Raw attention response:", aiText);
-      
-      // Remove markdown code blocks if present
-      let cleanedText = aiText.trim();
-      if (cleanedText.includes("```json")) {
-        cleanedText = cleanedText.split("```json")[1].split("```")[0].trim();
-      } else if (cleanedText.includes("```")) {
-        cleanedText = cleanedText.split("```")[1].split("```")[0].trim();
-      }
-      
       // Try to extract JSON from response
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      const jsonMatch = aiText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        console.log("Parsed attention data:", parsed);
-        
         if (parsed.attention_regions && Array.isArray(parsed.attention_regions)) {
-          // Validate and clamp intensity values to ensure they're in proper range
-          const validatedRegions = parsed.attention_regions.map((region: any) => ({
-            ...region,
-            // Ensure intensity is between 0.85 and 1.0
-            intensity: Math.max(0.85, Math.min(1.0, region.intensity || 0.9)),
-            // Ensure position and size are reasonable
-            x: Math.max(0, Math.min(90, region.x || 0)),
-            y: Math.max(0, Math.min(90, region.y || 0)),
-            width: Math.max(10, Math.min(40, region.width || 20)),
-            height: Math.max(10, Math.min(40, region.height || 20)),
-          }));
-          
-          console.log("Validated attention regions:", validatedRegions);
-          return validatedRegions;
+          return parsed.attention_regions;
         }
       }
     } catch (e) {
       console.error("Failed to parse attention JSON:", e);
     }
 
-    console.warn("Using fallback attention regions");
     // Fallback: Generate plausible attention regions with random 85-100% confidence
     return [
       { x: 15, y: 10, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Primary feature of interest" },

@@ -112,11 +112,26 @@ Return only the clean JSON:`;
         // Extract base64 data for all images (remove data:image/jpeg;base64, prefix if present)
         const base64Images = imageUrls.map(imageUrl => {
             let base64 = imageUrl;
+            
+            // Handle data URL format (data:image/jpeg;base64,...)
             if (base64.includes(',')) {
                 base64 = base64.split(',')[1];
             }
-            return base64;
-        });
+            
+            // Handle HTTP URLs by skipping them (backend should handle URL fetching)
+            if (base64.startsWith('http://') || base64.startsWith('https://')) {
+                return base64; // Return URL as-is for backend to fetch
+            }
+            
+            // Validate base64 length (must be multiple of 4)
+            const trimmed = base64.trim();
+            if (trimmed.length === 0 || trimmed.length % 4 !== 0) {
+                console.warn("Invalid base64 string detected, length:", trimmed.length);
+                return ""; // Return empty string for invalid base64
+            }
+            
+            return trimmed;
+        }).filter(img => img.length > 0); // Remove empty strings
 
         const payload: any = {
             prompt,

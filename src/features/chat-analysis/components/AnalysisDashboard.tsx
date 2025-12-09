@@ -157,28 +157,6 @@ const AnalysisDashboard = ({
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 min-h-0">
         <div className="space-y-4 pr-4 pb-4">
-          {/* Header Stats - Compact Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Vegetation Health - Compact */}
-            <Card
-              className={`p-4 border ${getHealthBg(data.vegetation?.health)}`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-full bg-green-500/20">
-                  <Leaf className="w-4 h-4 text-green-500" />
-                </div>
-                <h3 className="text-sm font-semibold">Veg Health</h3>
-              </div>
-              <div
-                className={`text-xl font-bold ${getHealthColor(
-                  data.vegetation?.health
-                )}`}
-              >
-                {data.vegetation?.health}
-              </div>
-            </Card>
-          </div>
-
           {/* Tabbed Content for Better Space Usage */}
           <Tabs defaultValue="analysis" className="w-full">
             <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50">

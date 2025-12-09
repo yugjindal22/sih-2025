@@ -11,6 +11,7 @@ export interface AnalysisOptions {
     temperature?: number;
     maxTokens?: number;
     model?: string;
+    skipSanitization?: boolean; // Skip Gemini post-processing for raw responses
 }
 
 export interface AnalysisResult {

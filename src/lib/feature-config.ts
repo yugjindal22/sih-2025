@@ -9,6 +9,7 @@ import {
     Clock,
     Layers,
     Globe,
+    FlaskConical,
     type LucideIcon,
 } from "lucide-react";
 
@@ -112,6 +113,15 @@ export const features: FeatureModule[] = [
         implemented: true,
         route: "/dashboard/features/satellite-tile-viewer",
         fromPrototype: true,
+    },
+    {
+        id: "evaluation",
+        title: "VQA/Caption Evaluation",
+        description: "Evaluate vision model responses against ground truth VQA and captioning benchmarks",
+        icon: FlaskConical,
+        implemented: true,
+        route: "/dashboard/features/evaluation",
+        fromPrototype: false,
     },
 ];
 

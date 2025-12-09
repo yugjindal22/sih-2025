@@ -103,7 +103,12 @@ Return only the clean JSON:`;
         input: AnalysisInput,
         options?: AnalysisOptions
     ): Promise<AnalysisResult> {
+<<<<<<< Updated upstream
         const { imageUrls, prompt, metadata, history } = input;
+=======
+        const { imageUrls, prompt, metadata } = input;
+        const skipSanitization = options?.skipSanitization || false;
+>>>>>>> Stashed changes
 
         if (!this.baseUrl) {
             throw new Error("Local OSS URL not configured. Set NEXT_PUBLIC_LOCAL_OSS_URL environment variable.");
@@ -194,27 +199,34 @@ Return only the clean JSON:`;
             responseText = responseText.slice(0, -10);
         }
 
-        // Always sanitize with Gemini first
-        console.log("Sanitizing response with Gemini...");
-        const sanitizedText = await this.sanitizeWithGemini(responseText);
-        let finalText = sanitizedText;
-        try {
-            parsedResponse = JSON.parse(sanitizedText);
-            // Return the sanitized JSON string so Chat.tsx can parse it consistently
+        let finalText = responseText;
+        
+        if (skipSanitization) {
+            // Skip Gemini sanitization for raw responses (e.g., VQA evaluation)
+            console.log("Skipping sanitization - returning raw response");
+            finalText = responseText.trim();
+        } else {
+            // Sanitize with Gemini for structured analysis
+            console.log("Sanitizing response with Gemini...");
+            const sanitizedText = await this.sanitizeWithGemini(responseText);
             finalText = sanitizedText;
-        } catch (e) {
-            // Still failed, use as plain text
-            console.warn("JSON parse failed even after sanitization:", e);
-            parsedResponse = { summary: responseText };
-            // Return plain text if JSON parsing fails
-            finalText = responseText;
+            try {
+                parsedResponse = JSON.parse(sanitizedText);
+                // Return the sanitized JSON string so Chat.tsx can parse it consistently
+                finalText = sanitizedText;
+            } catch (e) {
+                // Still failed, use as plain text
+                console.warn("JSON parse failed even after sanitization:", e);
+                parsedResponse = { summary: responseText };
+                // Return plain text if JSON parsing fails
+                finalText = responseText;
+            }
         }
 
         return {
             text: finalText,
-            confidence: parsedResponse.confidence ? parsedResponse.confidence / 100 : 0.85,
             metadata: {
-                model: data.model || parsedResponse.model || "OpenGVLab/InternVL2-2B",
+                model: data.model || "OpenGVLab/InternVL2-2B",
                 images_processed: data.images_processed || imageUrls.length,
                 ...metadata,
             },

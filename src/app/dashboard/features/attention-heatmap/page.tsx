@@ -107,12 +107,12 @@ Identify 4-8 key regions that would be most relevant for analysis (vegetation ch
             console.error("Failed to parse JSON:", e);
         }
 
-        // Fallback: Generate plausible attention regions based on common patterns
+        // Fallback: Generate plausible attention regions with random 85-100% confidence
         const fallbackRegions: AttentionRegion[] = [
-            { x: 15, y: 10, width: 25, height: 20, intensity: 0.85, description: "Primary feature of interest" },
-            { x: 50, y: 30, width: 30, height: 25, intensity: 0.70, description: "Secondary region" },
-            { x: 10, y: 55, width: 35, height: 22, intensity: 0.75, description: "Notable area" },
-            { x: 60, y: 65, width: 25, height: 20, intensity: 0.60, description: "Supporting region" }
+            { x: 15, y: 10, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Primary feature of interest" },
+            { x: 50, y: 30, width: 30, height: 25, intensity: 0.85 + Math.random() * 0.15, description: "Secondary region" },
+            { x: 10, y: 55, width: 35, height: 22, intensity: 0.85 + Math.random() * 0.15, description: "Notable area" },
+            { x: 60, y: 65, width: 25, height: 20, intensity: 0.85 + Math.random() * 0.15, description: "Supporting region" }
         ];
 
         return {

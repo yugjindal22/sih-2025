@@ -840,38 +840,38 @@ export default function SatelliteTileViewer() {
         <ScrollArea className="flex-1 bg-slate-50 dark:bg-slate-950">
           <div className="p-2 sm:p-3 lg:p-4 space-y-3 sm:space-y-4 lg:space-y-5 pb-6">
             {/* Search & Download Section */}
-            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1 sm:p-1.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-md">
-                  <Satellite className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+            <div className="space-y-3 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center gap-2 sm:gap-2">
+                <div className="p-1.5 sm:p-1.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-sm">
+                  <Satellite className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
                 </div>
-                <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-xs sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
                   Search Satellite Data
                 </h3>
               </div>
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm">
-                <CardContent className="p-2 sm:p-3 lg:p-4 space-y-2 sm:space-y-2.5 lg:space-y-3">
-                  <div className="space-y-1 sm:space-y-1.5">
+                <CardContent className="p-3 sm:p-3 lg:p-4 space-y-3 sm:space-y-3 lg:space-y-3">
+                  <div className="space-y-1.5 sm:space-y-1.5">
                     <Label
                       htmlFor="location"
-                      className="text-[9px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                      className="text-[10px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
                     >
                       Location Name
                     </Label>
                     <Input
                       id="location"
                       type="text"
-                      placeholder="e.g., New Delhi"
+                      placeholder="e.g., New Delhi, India"
                       value={searchLocation}
                       onChange={(e) => setSearchLocation(e.target.value)}
-                      className="h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
+                      className="h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2 lg:gap-2.5">
-                    <div className="space-y-1 sm:space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2 lg:gap-2.5">
+                    <div className="space-y-1.5 sm:space-y-1.5">
                       <Label
                         htmlFor="startDate"
-                        className="text-[9px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                        className="text-[10px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
                       >
                         Start Date
                       </Label>
@@ -880,13 +880,13 @@ export default function SatelliteTileViewer() {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
+                        className="h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
                       />
                     </div>
-                    <div className="space-y-1 sm:space-y-1.5">
+                    <div className="space-y-1.5 sm:space-y-1.5">
                       <Label
                         htmlFor="endDate"
-                        className="text-[9px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
+                        className="text-[10px] sm:text-[10px] lg:text-xs font-medium text-slate-700 dark:text-slate-300"
                       >
                         End Date
                       </Label>
@@ -895,7 +895,7 @@ export default function SatelliteTileViewer() {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
+                        className="h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700"
                       />
                     </div>
                   </div>
@@ -904,23 +904,17 @@ export default function SatelliteTileViewer() {
                     disabled={
                       searching || !searchLocation || !startDate || !endDate
                     }
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm font-medium shadow-md"
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm font-medium shadow-md"
                   >
                     {searching ? (
                       <>
-                        <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-1.5 sm:mr-2 animate-spin" />
-                        <span className="hidden sm:inline">
-                          Searching Satellites...
-                        </span>
-                        <span className="sm:hidden">Searching...</span>
+                        <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-2 sm:mr-2 animate-spin" />
+                        <span>Searching Satellites...</span>
                       </>
                     ) : (
                       <>
-                        <Search className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-1.5 sm:mr-2" />
-                        <span className="hidden sm:inline">
-                          Search & Download
-                        </span>
-                        <span className="sm:hidden">Search</span>
+                        <Search className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mr-2 sm:mr-2" />
+                        <span>Search & Download</span>
                       </>
                     )}
                   </Button>
@@ -931,19 +925,19 @@ export default function SatelliteTileViewer() {
             <Separator className="bg-slate-200 dark:bg-slate-800" />
 
             {/* Downloaded Files Section */}
-            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+            <div className="space-y-3 sm:space-y-3 lg:space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="p-1 sm:p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-md">
-                    <FileArchive className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+                <div className="flex items-center gap-2 sm:gap-2">
+                  <div className="p-1.5 sm:p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-sm">
+                    <FileArchive className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
                   </div>
-                  <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <h3 className="text-xs sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Downloaded Files
                   </h3>
                 </div>
                 <Badge
                   variant="secondary"
-                  className="text-[9px] sm:text-[10px] lg:text-xs px-1.5 sm:px-2"
+                  className="text-[10px] sm:text-[10px] lg:text-xs px-2 sm:px-2 py-0.5"
                 >
                   {downloadedFiles.length}
                 </Badge>
@@ -954,55 +948,53 @@ export default function SatelliteTileViewer() {
                 variant="outline"
                 onClick={fetchDownloadedFiles}
                 disabled={loadingFiles}
-                className="w-full h-7 sm:h-8 text-[10px] sm:text-[11px] lg:text-xs border-slate-300 dark:border-slate-700"
+                className="w-full h-8 sm:h-8 text-[11px] sm:text-[11px] lg:text-xs border-slate-300 dark:border-slate-700"
               >
                 {loadingFiles ? (
                   <>
-                    <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5 animate-spin" />
-                    <span className="hidden sm:inline">Refreshing...</span>
-                    <span className="sm:hidden">Loading...</span>
+                    <Loader2 className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5 animate-spin" />
+                    <span>Refreshing...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Refresh File List</span>
-                    <span className="sm:hidden">Refresh</span>
+                    <Download className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5" />
+                    <span>Refresh File List</span>
                   </>
                 )}
               </Button>
 
               {loadingFiles ? (
-                <div className="flex items-center justify-center py-6 sm:py-8 lg:py-12">
-                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 animate-spin text-blue-500" />
+                <div className="flex items-center justify-center py-8 sm:py-8 lg:py-12">
+                  <Loader2 className="w-6 h-6 sm:w-6 sm:h-6 lg:w-8 lg:h-8 animate-spin text-blue-500" />
                 </div>
               ) : downloadedFiles.length === 0 ? (
                 <Card className="bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 border-dashed">
-                  <CardContent className="p-3 sm:p-4 lg:p-6 text-center">
-                    <FileArchive className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mx-auto mb-1.5 sm:mb-2 text-slate-400" />
-                    <p className="text-[11px] sm:text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium mb-0.5 sm:mb-1">
+                  <CardContent className="p-4 sm:p-4 lg:p-6 text-center">
+                    <FileArchive className="w-8 h-8 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mx-auto mb-2 sm:mb-2 text-slate-400" />
+                    <p className="text-xs sm:text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium mb-1 sm:mb-1">
                       No files downloaded yet
                     </p>
-                    <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-500">
+                    <p className="text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-500">
                       Search and download data above
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-1.5 sm:space-y-2">
+                <div className="space-y-2 sm:space-y-2">
                   {downloadedFiles.map((file, idx) => (
                     <Card
                       key={idx}
                       className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition-all overflow-hidden"
                     >
-                      <CardContent className="p-2 sm:p-2.5 lg:p-3">
-                        <div className="space-y-1.5 sm:space-y-2">
-                          <div className="flex items-start gap-1.5 sm:gap-2">
-                            <FileArchive className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <CardContent className="p-3 sm:p-3 lg:p-3">
+                        <div className="space-y-2 sm:space-y-2">
+                          <div className="flex items-start gap-2 sm:gap-2">
+                            <FileArchive className="w-4 h-4 sm:w-4 sm:h-4 lg:w-4 lg:h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0 overflow-hidden">
-                              <p className="text-[10px] sm:text-xs lg:text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight break-all">
+                              <p className="text-xs sm:text-xs lg:text-sm font-medium text-slate-900 dark:text-slate-100 leading-tight break-all">
                                 {file.filename}
                               </p>
-                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center gap-2 sm:gap-2 mt-1 sm:mt-1 text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400">
                                 <span className="font-medium">
                                   {file.size_mb.toFixed(2)} MB
                                 </span>
@@ -1021,23 +1013,17 @@ export default function SatelliteTileViewer() {
                               handleProcessDownloadedFile(file.path)
                             }
                             disabled={processingFile === file.path}
-                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white h-7 sm:h-8 text-[10px] sm:text-xs font-medium shadow-sm"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white h-8 sm:h-8 text-[11px] sm:text-xs font-medium shadow-sm"
                           >
                             {processingFile === file.path ? (
                               <>
-                                <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5 animate-spin" />
-                                <span className="hidden sm:inline">
-                                  Processing...
-                                </span>
-                                <span className="sm:hidden">Loading...</span>
+                                <Loader2 className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5 animate-spin" />
+                                <span>Processing...</span>
                               </>
                             ) : (
                               <>
-                                <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 sm:mr-1.5" />
-                                <span className="hidden sm:inline">
-                                  Load on Map
-                                </span>
-                                <span className="sm:hidden">Load</span>
+                                <Download className="w-3 h-3 sm:w-3 sm:h-3 mr-1.5 sm:mr-1.5" />
+                                <span>Load on Map</span>
                               </>
                             )}
                           </Button>
@@ -1051,60 +1037,17 @@ export default function SatelliteTileViewer() {
 
             <Separator className="bg-slate-200 dark:bg-slate-800" />
 
-            {/* Demo Locations Section */}
-            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1 sm:p-1.5 bg-gradient-to-br from-orange-500 to-red-500 rounded-md">
-                  <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
-                </div>
-                <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
-                  Quick Locations
-                </h3>
-              </div>
-              <div className="space-y-1.5 sm:space-y-2">
-                {demoLocations.map((location, idx) => (
-                  <Button
-                    key={idx}
-                    onClick={() => handleDemoLocation(location)}
-                    disabled={downloadingDemo}
-                    className="w-full justify-start bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-blue-400 dark:hover:border-blue-600 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 h-auto py-2 sm:py-2.5 lg:py-3 shadow-sm transition-all"
-                    variant="outline"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 w-full">
-                      <div className="p-1 sm:p-1.5 bg-gradient-to-br from-orange-500 to-red-500 rounded-md flex-shrink-0">
-                        <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-3.5 lg:h-3.5 text-white" />
-                      </div>
-                      <div className="text-left flex-1 min-w-0">
-                        <div className="font-semibold text-[10px] sm:text-xs lg:text-sm truncate">
-                          {location.name}
-                        </div>
-                        <div className="text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                          {location.coords.lat.toFixed(2)},{" "}
-                          {location.coords.lng.toFixed(2)}
-                        </div>
-                      </div>
-                      {downloadingDemo && (
-                        <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin text-orange-500 flex-shrink-0" />
-                      )}
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <Separator className="bg-slate-200 dark:bg-slate-800" />
-
             {/* Activity Log Section */}
-            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="p-1 sm:p-1.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-md">
-                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
+            <div className="space-y-3 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center gap-2 sm:gap-2">
+                <div className="p-1.5 sm:p-1.5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
                 </div>
-                <h3 className="text-[11px] sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-xs sm:text-xs lg:text-sm font-bold text-slate-900 dark:text-slate-100">
                   Activity Log
                 </h3>
               </div>
-              <div className="space-y-2 sm:space-y-2.5">
+              <div className="space-y-2.5 sm:space-y-2.5">
                 {messages.map((msg, idx) => (
                   <div
                     key={idx}
@@ -1113,19 +1056,19 @@ export default function SatelliteTileViewer() {
                     }`}
                   >
                     <div
-                      className={`max-w-[88%] sm:max-w-[90%] p-2 sm:p-2.5 lg:p-3 rounded-lg border text-[10px] sm:text-xs lg:text-sm shadow-sm ${
+                      className={`max-w-[90%] sm:max-w-[90%] p-2.5 sm:p-2.5 lg:p-3 rounded-lg border text-xs sm:text-xs lg:text-sm shadow-sm ${
                         msg.role === "user"
                           ? "bg-gradient-to-r from-blue-500 to-cyan-500 border-blue-400 text-white"
                           : msg.role === "error"
-                          ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-700 dark:text-red-200 flex items-start gap-1.5 sm:gap-2"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-start gap-1.5 sm:gap-2"
+                          ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-700 dark:text-red-200 flex items-start gap-2 sm:gap-2"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-start gap-2 sm:gap-2"
                       }`}
                     >
                       {msg.role === "ai" && (
-                        <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-emerald-500 flex-shrink-0" />
+                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-emerald-500 flex-shrink-0" />
                       )}
                       {msg.role === "error" && (
-                        <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-red-500 flex-shrink-0" />
+                        <AlertCircle className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 mt-0.5 text-red-500 flex-shrink-0" />
                       )}
                       <span className="leading-relaxed break-words">
                         {msg.text}
@@ -1134,12 +1077,9 @@ export default function SatelliteTileViewer() {
                   </div>
                 ))}
                 {loading && (
-                  <div className="flex gap-1.5 sm:gap-2 items-center justify-center text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 p-2 sm:p-2.5 lg:p-3 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin text-blue-500" />
-                    <span className="hidden sm:inline">
-                      Processing satellite data...
-                    </span>
-                    <span className="sm:hidden">Processing...</span>
+                  <div className="flex gap-2 sm:gap-2 items-center justify-center text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 p-2.5 sm:p-2.5 lg:p-3 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin text-blue-500" />
+                    <span>Processing satellite data...</span>
                   </div>
                 )}
                 <div ref={chatEndRef} />
@@ -1148,16 +1088,16 @@ export default function SatelliteTileViewer() {
           </div>
         </ScrollArea>
 
-        <div className="p-2 sm:p-3 lg:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30">
+        <div className="p-3 sm:p-3 lg:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30">
           {currentImageUrl && (
-            <div className="mb-2 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-300 dark:border-purple-700 rounded-lg">
-              <Sparkles className="w-3 h-3 text-purple-500 flex-shrink-0 animate-pulse" />
-              <span className="text-[9px] sm:text-[10px] lg:text-xs text-purple-700 dark:text-purple-300 font-medium truncate">
+            <div className="mb-2 flex items-center gap-2 sm:gap-2 px-3 sm:px-3 py-2 sm:py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-300 dark:border-purple-700 rounded-lg">
+              <Sparkles className="w-3.5 h-3.5 text-purple-500 flex-shrink-0 animate-pulse" />
+              <span className="text-[10px] sm:text-[10px] lg:text-xs text-purple-700 dark:text-purple-300 font-medium truncate">
                 AI Vision Active
               </span>
             </div>
           )}
-          <div className="flex gap-1.5 sm:gap-2">
+          <div className="flex gap-2 sm:gap-2">
             <Input
               type="text"
               value={input}
@@ -1176,7 +1116,7 @@ export default function SatelliteTileViewer() {
                   : "Upload image first..."
               }
               disabled={!currentImageUrl || loading || analyzingROI}
-              className="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 h-8 sm:h-9 lg:h-10 text-[11px] sm:text-xs lg:text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              className="flex-1 bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 h-9 sm:h-9 lg:h-10 text-xs sm:text-xs lg:text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
             <Button
               onClick={handleSendMessage}
@@ -1184,36 +1124,25 @@ export default function SatelliteTileViewer() {
               disabled={
                 !currentImageUrl || loading || analyzingROI || !input.trim()
               }
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 shadow-md flex-shrink-0 disabled:opacity-50"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-9 w-9 sm:h-9 sm:w-9 lg:h-10 lg:w-10 shadow-md flex-shrink-0 disabled:opacity-50"
             >
               {loading || analyzingROI ? (
-                <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 animate-spin" />
               ) : (
-                <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
+                <Send className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
               )}
             </Button>
           </div>
-          <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2 text-center">
+          <p className="text-[10px] sm:text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 mt-2 sm:mt-2 text-center">
             {analyzingROI ? (
               <span className="text-orange-500 font-medium animate-pulse">
                 ⏳ ROI analysis in progress...
               </span>
             ) : currentImageUrl ? (
-              <span className="hidden sm:inline">
-                ✨ AI-powered analysis of your satellite imagery
-              </span>
+              <span>✨ AI-powered analysis of your satellite imagery</span>
             ) : (
-              <span className="hidden sm:inline">
-                💬 Upload satellite data to enable AI chat
-              </span>
+              <span>💬 Upload satellite data to enable AI chat</span>
             )}
-            <span className="sm:hidden">
-              {analyzingROI
-                ? "⏳ Analyzing..."
-                : currentImageUrl
-                ? "✨ AI Ready"
-                : "Upload first"}
-            </span>
           </p>
         </div>
       </div>

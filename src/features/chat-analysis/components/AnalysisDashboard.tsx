@@ -255,7 +255,7 @@ const AnalysisDashboard = ({
                   </div>
                 </div>
                 <div className="pl-14 space-y-3">
-                  {data.insights.slice(0, 2).map((insight, idx) => (
+                  {data.insights?.slice(0, 2).map((insight, idx) => (
                     <div key={idx} className="p-3 rounded-lg bg-background/50 border border-blue-500/10">
                       <div className="flex items-start gap-2">
                         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs font-bold">
@@ -286,7 +286,7 @@ const AnalysisDashboard = ({
                   </div>
                 </div>
                 <div className="pl-14 space-y-3">
-                  {data.insights.slice(2, 3).map((insight, idx) => (
+                  {data.insights?.slice(2, 3).map((insight, idx) => (
                     <div key={idx} className="p-3 rounded-lg bg-background/50 border border-purple-500/10">
                       <p className="text-sm leading-relaxed text-foreground">
                         {insight}
@@ -297,7 +297,7 @@ const AnalysisDashboard = ({
               </Card>
 
               {/* Notable Observations */}
-              {data.features.length > 0 && (
+              {data.features && data.features.length > 0 && (
                 <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 shadow-sm">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="p-2 rounded-lg bg-orange-500/20">
@@ -313,7 +313,7 @@ const AnalysisDashboard = ({
                     </div>
                   </div>
                   <div className="pl-14 space-y-2">
-                    {data.features.map((feature, idx) => (
+                    {data.features?.map((feature, idx) => (
                       <div
                         key={idx}
                         className="p-3 rounded-lg bg-background/50 border border-orange-500/10"
@@ -367,7 +367,7 @@ const AnalysisDashboard = ({
                   </div>
                 </div>
                 <div className="pl-14 space-y-3">
-                  {data.insights.slice(3, 5).map((insight, idx) => (
+                  {data.insights?.slice(3, 5).map((insight, idx) => (
                     <div key={idx} className="p-3 rounded-lg bg-background/50 border border-cyan-500/10">
                       <div className="flex items-start gap-2">
                         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 flex items-center justify-center text-xs font-bold">
@@ -398,7 +398,7 @@ const AnalysisDashboard = ({
                   </div>
                 </div>
                 <div className="pl-14 space-y-2">
-                  {data.recommendations.map((rec, idx) => (
+                  {data.recommendations?.map((rec, idx) => (
                     <div key={idx} className="p-3 rounded-lg bg-background/50 border border-green-500/10">
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-sm font-bold">
@@ -437,8 +437,8 @@ const AnalysisDashboard = ({
                   </div>
                   <div className="p-3 rounded-lg bg-background/50 border border-border">
                     <p className="text-xs text-muted-foreground mb-1">Features Detected</p>
-                    <p className="text-xl font-bold text-foreground">
-                      {data.features.length}
+                    <p className="text-3xl font-bold text-foreground">
+                      {data.features?.length || 0}
                     </p>
                   </div>
                 </div>
@@ -573,7 +573,7 @@ const AnalysisDashboard = ({
                   <div>
                     <div className="font-medium mb-1.5">Types</div>
                     <div className="flex flex-wrap gap-1">
-                      {data.vegetation.types.slice(0, 2).map((type, idx) => (
+                      {data.vegetation.types?.slice(0, 2).map((type, idx) => (
                         <Badge
                           key={idx}
                           variant="outline"
@@ -678,14 +678,14 @@ const AnalysisDashboard = ({
               </Card>
 
               {/* Notable Features - Compact */}
-              {data.features.length > 0 && (
+              {data.features && data.features.length > 0 && (
                 <Card className="p-3 bg-card/50 backdrop-blur-sm border-border">
                   <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
                     <Eye className="w-4 h-4 text-primary" />
-                    Features ({data.features.length})
+                    Features ({data.features?.length || 0})
                   </h3>
-                  <div className="space-y-2">
-                    {data.features.slice(0, 3).map((feature, idx) => (
+                  <div className="space-y-3">
+                    {data.features?.slice(0, 3).map((feature, idx) => (
                       <div
                         key={idx}
                         className="flex items-start gap-2 p-2 rounded-md bg-muted/50"
@@ -710,7 +710,7 @@ const AnalysisDashboard = ({
                         </div>
                       </div>
                     ))}
-                    {data.features.length > 3 && (
+                    {data.features && data.features.length > 3 && (
                       <div className="text-xs text-center text-muted-foreground">
                         +{data.features.length - 3} more
                       </div>
@@ -728,7 +728,7 @@ const AnalysisDashboard = ({
                   Insights
                 </h3>
                 <ul className="space-y-2">
-                  {data.insights.slice(0, 4).map((insight, idx) => (
+                  {data.insights?.slice(0, 4).map((insight, idx) => (
                     <li key={idx} className="text-xs flex items-start gap-2">
                       <span className="text-primary mt-0.5 flex-shrink-0">
                         •
@@ -746,7 +746,7 @@ const AnalysisDashboard = ({
                   Actions
                 </h3>
                 <ul className="space-y-2">
-                  {data.recommendations.slice(0, 4).map((rec, idx) => (
+                  {data.recommendations?.slice(0, 4).map((rec, idx) => (
                     <li key={idx} className="text-xs flex items-start gap-2">
                       <span className="text-green-500 mt-0.5 flex-shrink-0">
                         ✓

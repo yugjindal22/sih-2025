@@ -844,7 +844,7 @@ def call_gemini_vision(image_base64, prompt):
         import io
         
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Remove data URL prefix if present
         if ',' in image_base64:
@@ -910,7 +910,7 @@ def call_gemini_text(prompt):
         import google.generativeai as genai
         
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         response = model.generate_content(prompt)
         return response.text

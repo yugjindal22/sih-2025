@@ -84,7 +84,7 @@ export const generateReasoningSteps = (response: string): ReasoningStep[] => {
     },
     {
       title: "Domain Knowledge Application",
-      content: "Applied Earth Observation domain expertise to interpret spectral bands, NDVI values, and temporal changes. Considered seasonal patterns and geographical context.",
+      content: "Applied Earth Observation domain expertise to interpret spectral bands and temporal changes. Considered seasonal patterns and geographical context.",
       icon: Lightbulb,
       color: "text-yellow-400",
     },

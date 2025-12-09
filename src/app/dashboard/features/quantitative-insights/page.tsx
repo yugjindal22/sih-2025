@@ -113,7 +113,7 @@ export default function QuantitativeInsightsPage() {
             const name = metric.name.toLowerCase();
             const unit = metric.unit.toLowerCase();
             
-            if (name.includes('vegetation') || name.includes('ndvi') || name.includes('forest') || name.includes('tree')) {
+            if (name.includes('vegetation') || name.includes('forest') || name.includes('tree')) {
                 categories["Vegetation"].push({ ...metric, category: "Vegetation" });
             } else if (name.includes('water') || name.includes('lake') || name.includes('river') || name.includes('ocean')) {
                 categories["Water Bodies"].push({ ...metric, category: "Water Bodies" });
@@ -178,7 +178,6 @@ export default function QuantitativeInsightsPage() {
                 icon: <TrendingUp className="w-5 h-5" />,
                 color: "text-green-500",
                 metrics: [
-                    { category: "Vegetation", name: "NDVI Average", value: 0.72, unit: "index", confidence: 96 },
                     { category: "Vegetation", name: "Vegetation Density", value: 84.5, unit: "%", confidence: 91 },
                     { category: "Vegetation", name: "Canopy Height", value: 18.3, unit: "m", confidence: 87 }
                 ]
@@ -230,7 +229,7 @@ CRITICAL: Respond with a JSON object in this exact format:
 
 Extract metrics for:
 1. Land Cover: Total area, forest coverage, agricultural land, barren land percentages
-2. Vegetation: NDVI values, vegetation density, canopy height, greenness index
+2. Vegetation: Vegetation density, canopy height, greenness index
 3. Water Bodies: Water surface area, water quality indicators, turbidity levels
 4. Urban Development: Built-up area, urbanization rate, road network length, building density
 5. Environmental: Temperature readings, pollution levels, air quality index

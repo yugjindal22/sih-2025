@@ -40,7 +40,6 @@ export interface AnalysisData {
   };
   vegetation: {
     health: "Excellent" | "Good" | "Moderate" | "Poor" | "Critical";
-    ndvi: number;
     density: number;
     types: string[];
   };
@@ -85,7 +84,6 @@ const AnalysisDashboard = ({
     bareSoil: 0,
     forest: 0,
     agriculture: 0,
-    ndvi: 0,
     density: 0,
     confidence: 0,
   });
@@ -108,7 +106,6 @@ const AnalysisDashboard = ({
           bareSoil: (data.landCover?.bareSoil || 0) * progress,
           forest: (data.landCover?.forest || 0) * progress,
           agriculture: (data.landCover?.agriculture || 0) * progress,
-          ndvi: (data.vegetation?.ndvi || 0) * progress,
           density: (data.vegetation?.density || 0) * progress,
           confidence: (data.confidence || 0) * progress,
         });
@@ -178,9 +175,6 @@ const AnalysisDashboard = ({
                 )}`}
               >
                 {data.vegetation?.health}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                NDVI: {animatedValues.ndvi.toFixed(3)}
               </div>
             </Card>
           </div>

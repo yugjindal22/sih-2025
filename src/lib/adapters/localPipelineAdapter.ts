@@ -47,7 +47,7 @@ Required JSON structure (ensure ALL fields are present with detailed content):
   "summary": "4-5 sentence summary",
   "confidence": number,
   "landCover": {"vegetation": number, "water": number, "urban": number, "bareSoil": number, "forest": number, "agriculture": number},
-  "vegetation": {"health": string, "ndvi": number, "density": number, "types": array},
+  "vegetation": {"health": string, "density": number, "types": array},
   "waterBodies": {"totalArea": number, "quality": string, "sources": array},
   "urban": {"builtUpArea": number, "development": string, "infrastructure": array},
   "environmental": {"temperature": null, "humidity": null, "airQuality": string, "cloudCover": null},

@@ -40,7 +40,6 @@ export default function AnalysisDashboardPage() {
             },
             vegetation: {
                 health: "Moderate",
-                ndvi: 0.5,
                 density: 50,
                 types: []
             },
@@ -126,7 +125,6 @@ Return your analysis in the following JSON format:
   },
   "vegetation": {
     "health": "Excellent|Good|Moderate|Poor|Critical",
-    "ndvi": <value -1 to 1>,
     "density": <percentage 0-100>,
     "types": ["Forest", "Grassland", "Cropland", etc.]
   },

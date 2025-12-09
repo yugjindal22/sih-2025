@@ -2,7 +2,7 @@ import { type AnalysisData } from "@/features/chat-analysis/components/AnalysisD
 
 export const generateMockAnalysisData = (): AnalysisData => {
   return {
-    summary: "This satellite image shows a mixed landscape with moderate vegetation cover, significant urban development, and water bodies. The vegetation health is good with an NDVI of 0.68, indicating healthy plant growth.",
+    summary: "This satellite image shows a mixed landscape with moderate vegetation cover, significant urban development, and water bodies. The vegetation health is good, indicating healthy plant growth.",
     confidence: 87.5,
     landCover: {
       vegetation: 35.2,
@@ -14,7 +14,6 @@ export const generateMockAnalysisData = (): AnalysisData => {
     },
     vegetation: {
       health: "Good",
-      ndvi: 0.68,
       density: 72.5,
       types: ["Deciduous Trees", "Grassland", "Shrubs", "Agricultural Crops"],
     },
@@ -85,10 +84,6 @@ export const parseAnalysisFromText = (text: string): AnalysisData | null => {
 
   const urbanMatch = text.match(/urban[:\s]+(\d+\.?\d*)%/i);
   if (urbanMatch) mock.landCover.urban = parseFloat(urbanMatch[1]);
-
-  // Extract NDVI if mentioned
-  const ndviMatch = text.match(/ndvi[:\s]+(\d+\.?\d*)/i);
-  if (ndviMatch) mock.vegetation.ndvi = parseFloat(ndviMatch[1]);
 
   // Use first few sentences as summary
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);

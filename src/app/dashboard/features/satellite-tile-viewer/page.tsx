@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, XCircle } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import SatelliteTileViewer from "@/features/satellite-tile-viewer/components/SatelliteTileViewer";
 import { useState, useRef } from "react";
 
@@ -18,13 +19,24 @@ export default function SatelliteTileViewerPage() {
 
     return (
         <div className="h-screen bg-background flex flex-col">
-            <div className="container mx-auto px-4 py-4 flex items-center gap-2">
-                <Link href="/dashboard">
-                    <Button variant="ghost" className="mb-2">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Dashboard
-                    </Button>
-                </Link>
+            <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="relative h-8 w-8">
+                        <Image
+                            src="/ISRO Logo.png"
+                            alt="ISRO"
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                        />
+                    </div>
+                    <Link href="/dashboard">
+                        <Button variant="ghost" className="mb-2">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </Link>
+                </div>
                 {showDashboard && (
                     <Button 
                         variant="outline" 

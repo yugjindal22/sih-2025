@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Satellite, Menu } from "lucide-react";
+import { Moon, Sun, Menu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import {
   Sheet,
   SheetContent,
@@ -31,11 +32,15 @@ export default function Navbar() {
     >
       <div className="container flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-3 font-semibold">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 blur-md opacity-40" />
-            <div className="relative bg-gradient-to-br from-blue-600 to-cyan-600 p-2 rounded-lg">
-              <Satellite className="w-5 h-5 text-white" />
-            </div>
+          <div className="relative h-10 w-10">
+            <Image
+              src="/ISRO Logo.png"
+              alt="ISRO Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+              priority
+            />
           </div>
           <span className="text-lg font-bold text-slate-900 dark:text-white">
             GeoVision Observatory

@@ -4,19 +4,20 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 import Providers from "@/components/providers";
 import { PWARegister } from "@/components/pwa-register";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GeoVision Observatory - Multimodal Earth Observation Platform",
+  title: "GeoVision Observatory - ISRO Earth Observation Platform",
   description:
-    "GPT-OSS Multimodal Platform for ISRO Earth Observation Data - SIH 2025",
+    "AI-Powered Multimodal Platform for ISRO Earth Observation Data Analysis - Smart India Hackathon 2025",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "GeoVision",
+    title: "GeoVision ISRO",
   },
   manifest: "/manifest.webmanifest",
 };
@@ -51,8 +52,13 @@ export default function RootLayout({
         >
           <Providers>
             <PWARegister />
-            <Navbar />
-            {children}
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </div>
             <Toaster />
           </Providers>
         </ThemeProvider>

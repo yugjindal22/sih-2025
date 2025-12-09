@@ -11,8 +11,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
 import { responseService } from "@/lib/response-service";
@@ -76,16 +77,24 @@ export default function SettingsPage() {
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl">
-                <SettingsIcon className="w-6 h-6 text-white" />
+              <div className="relative h-12 w-12">
+                <Image
+                  src="/ISRO Logo.png"
+                  alt="ISRO"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
-                Configuration
-              </h1>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
+                  Configuration
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  ISRO Earth Observation Platform Settings
+                </p>
+              </div>
             </div>
-            <p className="text-slate-600 dark:text-slate-400">
-              Configure vision analysis backend and system preferences
-            </p>
           </div>
 
           <div className="space-y-6">

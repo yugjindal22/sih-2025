@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Satellite, Zap, Globe2 } from "lucide-react";
+import { ArrowRight, Zap, Globe2 } from "lucide-react";
 import RotatingEarth from "@/components/RotatingEarth";
 import InstallPWAButton from "@/components/install-pwa-button";
+import Image from "next/image";
 
 export default function Hero() {
   return (
@@ -18,8 +19,16 @@ export default function Hero() {
           {/* Left side - Text content */}
           <div className="space-y-6 sm:space-y-8 text-left max-w-2xl">
             {/* ISRO Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 shadow-sm">
-              <Satellite className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 shadow-sm">
+              <div className="relative h-5 w-5">
+                <Image
+                  src="/ISRO Logo.png"
+                  alt="ISRO"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+              </div>
               <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
                 ISRO Earth Observation Platform
               </span>

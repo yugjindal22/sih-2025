@@ -103,7 +103,7 @@ Return only the clean JSON:`;
         input: AnalysisInput,
         options?: AnalysisOptions
     ): Promise<AnalysisResult> {
-        const { imageUrls, prompt, metadata } = input;
+        const { imageUrls, prompt, metadata, history } = input;
 
         if (!this.baseUrl) {
             throw new Error("Local OSS URL not configured. Set NEXT_PUBLIC_LOCAL_OSS_URL environment variable.");
@@ -129,9 +129,8 @@ Return only the clean JSON:`;
             payload.images = base64Images;
         }
 
-        // Only add history if there are previous messages
-        // For now, always send empty array as per spec
-        payload.history = [];
+        // Add conversation history for context (if provided)
+        payload.history = history || [];
 
         let response;
         try {

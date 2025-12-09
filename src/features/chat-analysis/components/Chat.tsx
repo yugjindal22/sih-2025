@@ -68,6 +68,8 @@ const Chat = ({ onBack }: ChatProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [metadata, setMetadata] = useState<SatelliteMetadata | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
+  const [cachedImageUrl, setCachedImageUrl] = useState<string | null>(null);
   const [showAttentionHeatmap, setShowAttentionHeatmap] = useState(false);
   const [currentReasoningSteps, setCurrentReasoningSteps] = useState<any[]>([]);
   const [currentMetrics, setCurrentMetrics] = useState<any>(null);
@@ -311,6 +313,45 @@ Provide detailed insights about:
     }
   };
 
+  // Build conversation history with smart token management
+  const buildConversationHistory = (includeImage: boolean = false): Array<{role: string, content: string}> => {
+    // Keep only last 3 exchanges (6 messages) to manage token limits
+    const MAX_HISTORY_MESSAGES = 6;
+    const recentHistory = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
+    
+    // If we have a cached image and need to include it, add context about it
+    if (includeImage && cachedImageUrl) {
+      return [
+        {
+          role: "system",
+          content: "You have access to a satellite/aerial image that was uploaded. Use it for context in your responses."
+        },
+        ...recentHistory
+      ];
+    }
+    
+    return recentHistory;
+  };
+
+  // Update conversation history after each exchange
+  const updateConversationHistory = (userPrompt: string, aiResponse: string, hasImage: boolean = false) => {
+    setConversationHistory(prev => {
+      const newHistory = [
+        ...prev,
+        { role: "user", content: userPrompt },
+        { role: "assistant", content: aiResponse }
+      ];
+      
+      // Keep only last 10 messages (5 exchanges) to prevent token overflow
+      return newHistory.slice(-10);
+    });
+    
+    // Cache the image URL if this message had an image
+    if (hasImage && uploadedImage) {
+      setCachedImageUrl(uploadedImage);
+    }
+  };
+
   const sendMessageWithImage = async (promptText: string, imageUrl: string, showHeatmap: boolean = true) => {
     const userMessage: Message = {
       role: "user",
@@ -385,10 +426,11 @@ Fill ALL fields with detailed observations from the image. No hallucination.`;
         text: enhancedPrompt,
       });
 
-      // Use the response service for dynamic model selection
+      // Use the response service for dynamic model selection with conversation history
       const analysisResult = await responseService.analyzeImage({
         imageUrls: [imageUrl],
         prompt: enhancedPrompt,
+        history: buildConversationHistory(false), // Don't mention image in history, it's already in imageUrls
         metadata: {
           satellite: metadata?.satellite,
           sensor: metadata?.sensor,
@@ -447,6 +489,9 @@ Fill ALL fields with detailed observations from the image. No hallucination.`;
           analysisData: analysisData || undefined,
         },
       ]);
+      
+      // Update conversation history for context in next messages
+      updateConversationHistory(promptText, displayText, true);
       
       // Clear uploaded image after successful response
       if (currentUploadedImage === uploadedImage) {
@@ -563,10 +608,11 @@ Fill ALL fields with detailed observations from the image. No hallucination.`;
         text: enhancedPrompt,
       });
 
-      // Use the response service for dynamic model selection
+      // Use the response service for dynamic model selection with conversation history
       const analysisResult = await responseService.analyzeImage({
-        imageUrls: uploadedImage ? [uploadedImage] : [],
+        imageUrls: cachedImageUrl ? [cachedImageUrl] : (uploadedImage ? [uploadedImage] : []),
         prompt: enhancedPrompt,
+        history: buildConversationHistory(true), // Include image context if we have cached image
         metadata: {
           satellite: metadata?.satellite,
           sensor: metadata?.sensor,
@@ -644,6 +690,10 @@ Fill ALL fields with detailed observations from the image. No hallucination.`;
           analysisData: analysisData || undefined,
         },
       ]);
+      
+      // Update conversation history for context in next messages
+      const userPrompt = input || "Analyze this Earth Observation image";
+      updateConversationHistory(userPrompt, displayText, !!uploadedImage);
     } catch (error: any) {
       // Check if it was aborted
       if (error.name === "AbortError") {

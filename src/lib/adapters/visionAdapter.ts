@@ -4,6 +4,7 @@ export interface AnalysisInput {
     imageUrls: string[]; // Changed to array to support multiple images
     prompt: string;
     metadata?: Record<string, any>;
+    history?: Array<{role: string, content: string}>; // Conversation history for context
 }
 
 export interface AnalysisOptions {

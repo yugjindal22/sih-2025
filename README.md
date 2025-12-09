@@ -47,7 +47,6 @@ Traditional satellite imagery analysis requires specialized GIS software, extens
 
 #### 🛰️ Satellite Data Processing
 - Support for Sentinel-2 L2A multispectral imagery
-- Automated cloud masking and atmospheric correction
 - Multi-temporal data fusion and change detection
 - Band math calculations (NDVI, NDWI, NDBI, etc.)
 
@@ -61,7 +60,6 @@ Traditional satellite imagery analysis requires specialized GIS software, extens
 #### 🤖 AI-Powered Analysis
 - Vision transformer models for feature extraction
 - Attention mechanism visualization
-- Explainable AI with reasoning traces
 - Automated land cover classification
 - Object detection and segmentation
 
@@ -308,18 +306,7 @@ Extract and visualize numerical data from Earth Observation analysis.
 - Correlation matrices
 - Trend indicators
 
-### 9. 🧠 Explainable AI (Reasoning Trace)
-**Route**: `/dashboard/features/reasoning-trace`
-
-Step-by-step visualization of AI reasoning for transparent decision-making.
-
-**Features**:
-- Decision tree visualization
-- Feature importance ranking
-- Model confidence scores
-- Interpretable predictions
-
-### 10. ⏱️ Temporal Fusion
+### 9. ⏱️ Temporal Fusion
 **Route**: `/dashboard/features/temporal-fusion`
 
 Multi-temporal data fusion for time-series analysis and trend detection.
@@ -330,18 +317,7 @@ Multi-temporal data fusion for time-series analysis and trend detection.
 - Anomaly detection
 - Forecasting
 
-### 11. ☁️ Cloud Masking
-**Route**: `/dashboard/features/cloud-masking`
-
-Automated cloud detection and removal from satellite imagery.
-
-**Methods**:
-- ML-based cloud detection
-- Shadow detection
-- Quality assessment band (QA60)
-- Automated masking
-
-### 12. 🔀 Multi-Sensor Fusion
+### 10. 🔀 Multi-Sensor Fusion
 **Route**: `/dashboard/features/multi-sensor-fusion`
 
 Integrate data from multiple satellite sensors for enhanced analysis.

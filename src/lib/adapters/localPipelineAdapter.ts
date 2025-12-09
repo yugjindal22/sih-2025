@@ -103,12 +103,8 @@ Return only the clean JSON:`;
         input: AnalysisInput,
         options?: AnalysisOptions
     ): Promise<AnalysisResult> {
-<<<<<<< Updated upstream
         const { imageUrls, prompt, metadata, history } = input;
-=======
-        const { imageUrls, prompt, metadata } = input;
         const skipSanitization = options?.skipSanitization || false;
->>>>>>> Stashed changes
 
         if (!this.baseUrl) {
             throw new Error("Local OSS URL not configured. Set NEXT_PUBLIC_LOCAL_OSS_URL environment variable.");

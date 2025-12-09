@@ -11,7 +11,6 @@ import { localPipelineAdapter } from "@/lib/adapters/localPipelineAdapter";
 import vqaData from "../../../../../vqa.json";
 import capData from "../../../../../cap.json";
 import { Loader2, CheckCircle2, XCircle, Image as ImageIcon } from "lucide-react";
-import { bleu } from "bleu-score";
 
 interface VQAQuestion {
   image_id: string;
@@ -63,8 +62,6 @@ export default function EvaluationPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverResponse, setServerResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [bleuScores, setBleuScores] = useState<number[]>([]);
-  const [isCalculatingBleu, setIsCalculatingBleu] = useState(false);
 
   // Filter questions for selected image
   const getQuestionsForImage = () => {
@@ -174,102 +171,7 @@ export default function EvaluationPage() {
     }
   };
 
-  const handleCalculateBleu = async () => {
-    if (!selectedImage || !selectedQuestion) return;
 
-    setIsCalculatingBleu(true);
-    setError(null);
-    setBleuScores([]);
-
-    try {
-      // Convert image to base64
-      const imageResponse = await fetch(getImagePath(selectedImage));
-      
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to load image: ${imageResponse.statusText}`);
-      }
-      
-      const blob = await imageResponse.blob();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          resolve(result);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-      // Prepare prompt
-      const isVQA = selectedQuestion.type !== "caption";
-      let prompt = "";
-      
-      if (isVQA) {
-        prompt = `SYSTEM: You must respond ONLY to what the user asks. Be direct and concise. Do not add explanations, elaborations, or extra details. Answer exactly what is requested, nothing more.\n\nQ: ${selectedQuestion.question}\nA:`;
-      } else {
-        prompt = `SYSTEM: You must respond ONLY to what the user asks. Be direct and concise. Do not add explanations, elaborations, or extra details. Answer exactly what is requested, nothing more.\n\nUSER: ${selectedQuestion.question}\n\nRESPONSE:`;
-      }
-
-      // Run 5 times and calculate BLEU scores
-      const scores: number[] = [];
-      
-      for (let i = 0; i < 5; i++) {
-        const result = await localPipelineAdapter.analyzeImage({
-          imageUrls: [base64],
-          prompt: prompt,
-        }, {
-          skipSanitization: true,
-        });
-
-        let responseText = result.text.trim();
-        
-        if (isVQA) {
-          try {
-            const parsed = JSON.parse(responseText);
-            if (parsed.answer) {
-              responseText = parsed.answer;
-            } else if (parsed.summary) {
-              responseText = parsed.summary;
-            } else if (typeof parsed === 'string') {
-              responseText = parsed;
-            }
-          } catch {
-            responseText = responseText
-              .replace(/```json\s*/g, '')
-              .replace(/```\s*/g, '')
-              .replace(/^[^a-zA-Z0-9]+/, '')
-              .split('\n')[0]
-              .split('.')[0]
-              .trim();
-          }
-        }
-
-        // Calculate BLEU score using bleu-score package
-        // Use maxN=1 for VQA (short answers), maxN=4 for captions (longer sentences)
-        const maxN = isVQA ? 1 : 4;
-        
-        // Normalize both strings for better comparison
-        const normalizedReference = selectedQuestion.ground_truth.toLowerCase().replace(/-/g, ' ');
-        const normalizedCandidate = responseText.toLowerCase().replace(/-/g, ' ');
-        
-        console.log(`Iteration ${i + 1} (${isVQA ? 'VQA' : 'Caption'}):`);
-        console.log('Reference:', normalizedReference);
-        console.log('Candidate:', normalizedCandidate);
-        
-        const bleuScore = bleu(normalizedReference, normalizedCandidate, maxN);
-        console.log(`BLEU-${maxN} Score:`, bleuScore);
-        
-        scores.push(bleuScore);
-      }
-
-      setBleuScores(scores);
-    } catch (err: any) {
-      console.error("BLEU calculation error:", err);
-      setError(err.message || "Failed to calculate BLEU scores");
-    } finally {
-      setIsCalculatingBleu(false);
-    }
-  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -435,13 +337,13 @@ export default function EvaluationPage() {
               )}
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Evaluate Buttons */}
+              {/* Evaluate Button */}
               {selectedQuestion && (
-                <div className="flex justify-center gap-4 pb-4">
+                <div className="flex justify-center pb-4">
                   <Button
                     size="lg"
                     onClick={handleEvaluate}
-                    disabled={isLoading || isCalculatingBleu}
+                    disabled={isLoading}
                     className="min-w-[200px]"
                   >
                     {isLoading ? (
@@ -451,23 +353,6 @@ export default function EvaluationPage() {
                       </>
                     ) : (
                       "Evaluate"
-                    )}
-                  </Button>
-                  
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={handleCalculateBleu}
-                    disabled={isLoading || isCalculatingBleu}
-                    className="min-w-[200px]"
-                  >
-                    {isCalculatingBleu ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Calculating...
-                      </>
-                    ) : (
-                      "Calculate BLEU (5x)"
                     )}
                   </Button>
                 </div>
@@ -522,55 +407,6 @@ export default function EvaluationPage() {
         </div>
       )}
 
-      {/* BLEU Scores Display */}
-      {bleuScores.length > 0 && selectedQuestion && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              BLEU Score Results (5 Iterations)
-            </CardTitle>
-            <CardDescription>
-              Comparing model outputs against ground truth: {selectedQuestion.ground_truth}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Individual Scores */}
-              <div>
-                <h3 className="font-semibold mb-3">Individual BLEU Scores</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {bleuScores.map((score, index) => (
-                    <div key={index} className="flex flex-col items-center p-4 bg-muted rounded-lg">
-                      <span className="text-sm text-muted-foreground mb-1">Run {index + 1}</span>
-                      <span className="text-2xl font-bold text-primary">
-                        {(score * 100).toFixed(2)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Mean Score */}
-              <div className="bg-primary/5 p-6 rounded-lg border border-primary/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Mean BLEU Score</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Average across all 5 iterations
-                    </p>
-                  </div>
-                  <div className="text-4xl font-bold text-primary">
-                    {((bleuScores.reduce((sum, score) => sum + score, 0) / bleuScores.length) * 100).toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

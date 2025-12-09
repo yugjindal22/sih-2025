@@ -162,20 +162,6 @@ const AnalysisDashboard = ({
         <div className="space-y-4 pr-4 pb-4">
           {/* Header Stats - Compact Grid */}
           <div className="grid grid-cols-2 gap-3">
-            {/* Confidence Score - Compact */}
-            <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-full bg-primary/20">
-                  <Activity className="w-4 h-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold">Confidence</h3>
-              </div>
-              <div className="text-3xl font-bold text-primary mb-2">
-                {animatedValues.confidence.toFixed(1)}%
-              </div>
-              <Progress value={animatedValues.confidence} className="h-2" />
-            </Card>
-
             {/* Vegetation Health - Compact */}
             <Card
               className={`p-4 border ${getHealthBg(data.vegetation?.health)}`}

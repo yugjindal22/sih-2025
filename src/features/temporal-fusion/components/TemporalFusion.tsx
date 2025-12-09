@@ -535,13 +535,6 @@ Provide quantitative data for time series and specific dates for anomalies.`;
                                 <p className="text-xs text-muted-foreground mb-2">
                                   {analysis.predictions.predictedChange}
                                 </p>
-                                <Progress
-                                  value={analysis.predictions.confidence ?? 0}
-                                  className="h-1.5"
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                  Confidence: {analysis.predictions.confidence ?? 0}%
-                                </p>
                               </div>
                             </div>
                           </div>

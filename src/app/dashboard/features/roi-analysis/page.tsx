@@ -377,15 +377,15 @@ Output ONLY valid JSON. No markdown, no code blocks, no extra text.`,
                                                 <div>
                                                     <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Land Cover</h3>
                                                     <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
-                                                        <p className="text-sm"><span className="font-medium">Dominant:</span> {analysisResult.landCover.dominant} ({analysisResult.landCover.percentage}%)</p>
-                                                        <p className="text-sm mt-1"><span className="font-medium">Secondary:</span> {analysisResult.landCover.secondary.join(", ")}</p>
+                                                        <p className="text-sm"><span className="font-medium">Dominant:</span> {analysisResult.landCover?.dominant || "Unknown"} ({analysisResult.landCover?.percentage || 0}%)</p>
+                                                        <p className="text-sm mt-1"><span className="font-medium">Secondary:</span> {analysisResult.landCover?.secondary?.join(", ") || "None"}</p>
                                                     </div>
                                                 </div>
 
                                                 <div>
                                                     <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Features Detected</h3>
                                                     <div className="space-y-2">
-                                                        {analysisResult.features.map((feature, idx) => (
+                                                        {analysisResult.features?.map((feature, idx) => (
                                                             <div key={idx} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
                                                                 <div className="flex justify-between items-start">
                                                                     <div>
@@ -395,7 +395,7 @@ Output ONLY valid JSON. No markdown, no code blocks, no extra text.`,
                                                                     <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded">{feature.confidence}%</span>
                                                                 </div>
                                                             </div>
-                                                        ))}
+                                                        )) || <p className="text-sm text-slate-500">No features detected</p>}
                                                     </div>
                                                 </div>
 
@@ -403,33 +403,33 @@ Output ONLY valid JSON. No markdown, no code blocks, no extra text.`,
                                                     <div>
                                                         <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Vegetation</h3>
                                                         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-sm">
-                                                            <p><span className="font-medium">Presence:</span> {analysisResult.vegetation.presence}</p>
-                                                            <p><span className="font-medium">Health:</span> {analysisResult.vegetation.health}</p>
-                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{analysisResult.vegetation.types.join(", ")}</p>
+                                                            <p><span className="font-medium">Presence:</span> {analysisResult.vegetation?.presence || "Unknown"}</p>
+                                                            <p><span className="font-medium">Health:</span> {analysisResult.vegetation?.health || "Unknown"}</p>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{analysisResult.vegetation?.types?.join(", ") || "None"}</p>
                                                         </div>
                                                     </div>
                                                     <div>
                                                         <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Infrastructure</h3>
                                                         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-sm">
-                                                            <p><span className="font-medium">Detected:</span> {analysisResult.infrastructure.detected ? "Yes" : "No"}</p>
-                                                            <p><span className="font-medium">Density:</span> {analysisResult.infrastructure.density}</p>
-                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{analysisResult.infrastructure.types.join(", ")}</p>
+                                                            <p><span className="font-medium">Detected:</span> {analysisResult.infrastructure?.detected ? "Yes" : "No"}</p>
+                                                            <p><span className="font-medium">Density:</span> {analysisResult.infrastructure?.density || "Unknown"}</p>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{analysisResult.infrastructure?.types?.join(", ") || "None"}</p>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div>
-                                                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Classification: {analysisResult.analysis.classification}</h3>
+                                                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Classification: {analysisResult.analysis?.classification || "Unknown"}</h3>
                                                     <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
                                                         <div>
                                                             <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Key Observations</p>
                                                             <ul className="list-disc list-inside text-sm space-y-1">
-                                                                {analysisResult.analysis.keyObservations.map((obs, idx) => (
+                                                                {analysisResult.analysis.keyObservations?.map((obs, idx) => (
                                                                     <li key={idx}>{obs}</li>
-                                                                ))}
+                                                                )) || <li>No observations available</li>}
                                                             </ul>
                                                         </div>
-                                                        {analysisResult.analysis.anomalies.length > 0 && (
+                                                        {analysisResult.analysis.anomalies && analysisResult.analysis.anomalies.length > 0 && (
                                                             <div>
                                                                 <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Anomalies</p>
                                                                 <ul className="list-disc list-inside text-sm space-y-1 text-orange-600 dark:text-orange-400">
@@ -442,9 +442,9 @@ Output ONLY valid JSON. No markdown, no code blocks, no extra text.`,
                                                         <div>
                                                             <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Recommendations</p>
                                                             <ul className="list-disc list-inside text-sm space-y-1">
-                                                                {analysisResult.analysis.recommendations.map((rec, idx) => (
+                                                                {analysisResult.analysis.recommendations?.map((rec, idx) => (
                                                                     <li key={idx}>{rec}</li>
-                                                                ))}
+                                                                )) || <li>No recommendations available</li>}
                                                             </ul>
                                                         </div>
                                                     </div>

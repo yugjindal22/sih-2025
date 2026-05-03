@@ -77,21 +77,12 @@ export default function SettingsPage() {
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="relative h-12 w-12">
-                <Image
-                  src="/ISRO Logo.png"
-                  alt="ISRO"
-                  width={48}
-                  height={48}
-                  className="object-contain"
-                />
-              </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
                   Configuration
                 </h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  ISRO Earth Observation Platform Settings
+                  Earth Observation Platform Settings
                 </p>
               </div>
             </div>

@@ -33,14 +33,6 @@ export default function Navbar() {
       <div className="container flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-3 font-semibold">
           <div className="relative h-10 w-10">
-            <Image
-              src="/ISRO Logo.png"
-              alt="ISRO Logo"
-              width={40}
-              height={40}
-              className="object-contain"
-              priority
-            />
           </div>
           <span className="text-lg font-bold text-slate-900 dark:text-white">
             GeoVision Observatory

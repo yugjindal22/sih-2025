@@ -5,7 +5,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
-![License](https://img.shields.io/badge/License-SIH_2025-green)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
@@ -167,8 +167,8 @@ Ensure you have the following installed:
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yugjindal22/sih-2025.git
-cd sih-2025
+git clone https://github.com/yugjindal22/geovision.git
+cd geovision
 ```
 
 #### 2. Install Frontend Dependencies
@@ -408,7 +408,7 @@ All API endpoints return standardized error responses:
 ## 📂 Project Structure
 
 ```
-sih-2025/
+geovision/
 ├── public/                          # Static assets
 │   ├── leaflet/                     # Leaflet marker icons
 │   └── ...
@@ -578,8 +578,8 @@ This project was developed for **Smart India Hackathon 2025**.
 
 For issues and questions:
 - 📧 Email: [Contact via GitHub]
-- 🐛 Issues: [GitHub Issues](https://github.com/yugjindal22/sih-2025/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yugjindal22/sih-2025/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/yugjindal22/geovision/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/yugjindal22/geovision/discussions)
 
 ---
 

@@ -6,23 +6,13 @@ export default function Footer() {
     <footer className="mt-auto border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* ISRO Attribution */}
           <div className="flex items-center gap-3">
-            <div className="relative h-8 w-8">
-              <Image
-                src="/ISRO Logo.png"
-                alt="ISRO"
-                width={32}
-                height={32}
-                className="object-contain"
-              />
-            </div>
             <div className="text-sm">
               <p className="font-semibold text-slate-900 dark:text-white">
-                Developed for ISRO
+                GeoVision
               </p>
               <p className="text-slate-600 dark:text-slate-400">
-                Smart India Hackathon 2025
+                Earth Observation Platform
               </p>
             </div>
           </div>
@@ -41,14 +31,6 @@ export default function Footer() {
             >
               Settings
             </Link>
-            <a 
-              href="https://www.isro.gov.in" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-slate-900 dark:hover:text-white transition-colors"
-            >
-              ISRO Official
-            </a>
           </div>
 
           {/* Copyright */}

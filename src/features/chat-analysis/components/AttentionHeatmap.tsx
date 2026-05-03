@@ -55,30 +55,12 @@ const AttentionHeatmap = ({ imageUrl, isActive }: AttentionHeatmapProps) => {
     try {
       const result = await responseService.analyzeImage({
         imageUrls: [imgUrl],
-        prompt: `Analyze this satellite/aerial image and identify the most important regions that would require attention during Earth Observation analysis.
+        prompt: `Identify 4-6 important regions in this satellite/aerial image for Earth Observation analysis.
 
-For each important region, provide:
-1. Location (as percentages from top-left): x, y coordinates
-2. Size (as percentages): width and height
-3. Importance score (0.0 to 1.0)
-4. Brief description of what makes this region important
+Respond with ONLY this JSON format, no other text:
+{"summary":"<1-2 sentence overview>","attention_regions":[{"x":<percent 0-100 from left>,"y":<percent 0-100 from top>,"width":<percent 0-100>,"height":<percent 0-100>,"intensity":<importance 0.0-1.0>,"description":"<what makes this region important>"}]}
 
-Return your response in this JSON format:
-{
-  "summary": "Overall analysis of the image",
-  "attention_regions": [
-    {
-      "x": <percentage 0-100 from left edge>,
-      "y": <percentage 0-100 from top edge>,
-      "width": <percentage 0-100>,
-      "height": <percentage 0-100>,
-      "intensity": <importance score 0.0-1.0>,
-      "description": "Brief description of this region"
-    }
-  ]
-}
-
-Identify 4-8 key regions that would be most relevant for analysis (vegetation changes, water bodies, urban areas, anomalies, etc.).`,
+Each region should highlight something distinct: vegetation, water, urban areas, anomalies, bare soil, etc. Use realistic coordinates spread across the image. Output ONE JSON object only.`,
         metadata: {
           feature: "attention-heatmap"
         }

@@ -12,21 +12,12 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-10 sm:mb-12 max-w-3xl">
           <div className="flex items-center gap-3 mb-4">
-            <div className="relative h-12 w-12">
-              <Image
-                src="/ISRO Logo.png"
-                alt="ISRO"
-                width={48}
-                height={48}
-                className="object-contain"
-              />
-            </div>
             <div className="flex flex-col gap-1">
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
                 Analysis Modules
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                ISRO Earth Observation Analysis Platform
+                Earth Observation Analysis Platform
               </p>
             </div>
           </div>

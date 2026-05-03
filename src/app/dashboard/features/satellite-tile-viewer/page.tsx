@@ -21,15 +21,6 @@ export default function SatelliteTileViewerPage() {
         <div className="h-screen bg-background flex flex-col">
             <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="relative h-8 w-8">
-                        <Image
-                            src="/ISRO Logo.png"
-                            alt="ISRO"
-                            width={32}
-                            height={32}
-                            className="object-contain"
-                        />
-                    </div>
                     <Link href="/dashboard">
                         <Button variant="ghost" className="mb-2">
                             <ArrowLeft className="w-4 h-4 mr-2" />

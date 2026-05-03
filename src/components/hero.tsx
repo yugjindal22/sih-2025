@@ -18,21 +18,7 @@ export default function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left side - Text content */}
           <div className="space-y-6 sm:space-y-8 text-left max-w-2xl">
-            {/* ISRO Badge */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 shadow-sm">
-              <div className="relative h-5 w-5">
-                <Image
-                  src="/ISRO Logo.png"
-                  alt="ISRO"
-                  width={20}
-                  height={20}
-                  className="object-contain"
-                />
-              </div>
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                ISRO Earth Observation Platform
-              </span>
-            </div>
+
 
             {/* Main heading */}
             <div className="space-y-4 sm:space-y-5">

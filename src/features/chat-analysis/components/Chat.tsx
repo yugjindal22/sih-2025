@@ -417,10 +417,64 @@ Provide detailed insights about:
 
       enhancedPrompt += `
 
-Analyze this Earth Observation image. Output valid JSON only:
-{"summary":"5 sentences","confidence":${85 + Math.floor(Math.random() * 9)},"landCover":{"vegetation":0,"water":0,"urban":0,"bareSoil":0,"forest":0,"agriculture":0},"vegetation":{"health":"Good","ndvi":0.5,"density":50,"types":[]},"waterBodies":{"totalArea":0,"quality":"","sources":[]},"urban":{"builtUpArea":0,"development":"Medium","infrastructure":[]},"environmental":{"temperature":null,"humidity":null,"airQuality":"Not detectable","cloudCover":null},"features":[{"type":"","description":"","severity":"Medium"}],"insights":["insight1","insight2","insight3","insight4","insight5"],"recommendations":["rec1","rec2"]}
+You MUST respond with ONLY a single valid JSON object. No explanation, no markdown, no extra text.
+Estimate realistic non-zero percentages for land cover that sum to approximately 100.
+Write detailed, specific descriptions based on what you actually see in the image.
 
-Fill ALL fields with detailed observations from the image. No hallucination.`;
+Required JSON schema:
+{
+  "summary": "<Write 4-5 detailed sentences describing the overall scene, terrain, and key observations>",
+  "confidence": <number 70-95>,
+  "landCover": {
+    "vegetation": <percentage 0-100, estimate from visible greenery>,
+    "water": <percentage 0-100, estimate from visible water>,
+    "urban": <percentage 0-100, estimate from buildings/roads>,
+    "bareSoil": <percentage 0-100, estimate from exposed earth>,
+    "forest": <percentage 0-100, estimate from dense tree cover>,
+    "agriculture": <percentage 0-100, estimate from farmland/crops>
+  },
+  "vegetation": {
+    "health": "<Excellent|Good|Moderate|Poor|Critical based on color/density>",
+    "ndvi": <estimated NDVI value between -0.1 and 0.9>,
+    "density": <percentage 0-100>,
+    "types": ["<list 2-4 vegetation types you can identify, e.g. deciduous trees, grassland, crops>"]
+  },
+  "waterBodies": {
+    "totalArea": <percentage of image covered by water>,
+    "quality": "<Clean|Moderate|Polluted based on color/turbidity>",
+    "sources": ["<list water features: river, lake, pond, reservoir, canal>"]
+  },
+  "urban": {
+    "builtUpArea": <percentage of image with structures>,
+    "development": "<High|Medium|Low>",
+    "infrastructure": ["<list visible infrastructure: roads, buildings, bridges, power lines>"]
+  },
+  "environmental": {
+    "temperature": <estimated temperature in Celsius or null>,
+    "humidity": <estimated humidity percentage or null>,
+    "airQuality": "<Good|Moderate|Poor>",
+    "cloudCover": <estimated cloud cover percentage or null>
+  },
+  "features": [
+    {"type": "<anomaly|infrastructure|natural|land_use>", "description": "<2-3 sentences about this specific feature>", "severity": "<High|Medium|Low>"},
+    {"type": "<type>", "description": "<description>", "severity": "<severity>"},
+    {"type": "<type>", "description": "<description>", "severity": "<severity>"}
+  ],
+  "insights": [
+    "<Detailed actionable insight about land use patterns>",
+    "<Insight about vegetation health and distribution>",
+    "<Insight about water resources or hydrology>",
+    "<Insight about urban development or human activity>",
+    "<Insight about environmental conditions or risks>"
+  ],
+  "recommendations": [
+    "<Specific actionable recommendation for monitoring or management>",
+    "<Another recommendation based on observed features>",
+    "<Third recommendation for further analysis>"
+  ]
+}
+
+IMPORTANT: All landCover percentages MUST be non-zero estimates that sum to ~100. All arrays MUST have real content. Do NOT leave fields empty.`;
 
       parts.push({
         text: enhancedPrompt,
@@ -599,10 +653,64 @@ Fill ALL fields with detailed observations from the image. No hallucination.`;
 
       enhancedPrompt += `
 
-Analyze this Earth Observation image. Output valid JSON only:
-{"summary":"5 sentences","confidence":${85 + Math.floor(Math.random() * 9)},"landCover":{"vegetation":0,"water":0,"urban":0,"bareSoil":0,"forest":0,"agriculture":0},"vegetation":{"health":"Good","ndvi":0.5,"density":50,"types":[]},"waterBodies":{"totalArea":0,"quality":"","sources":[]},"urban":{"builtUpArea":0,"development":"Medium","infrastructure":[]},"environmental":{"temperature":null,"humidity":null,"airQuality":"Not detectable","cloudCover":null},"features":[{"type":"","description":"","severity":"Medium"}],"insights":["insight1","insight2","insight3","insight4","insight5"],"recommendations":["rec1","rec2"]}
+You MUST respond with ONLY a single valid JSON object. No explanation, no markdown, no extra text.
+Estimate realistic non-zero percentages for land cover that sum to approximately 100.
+Write detailed, specific descriptions based on what you actually see in the image.
 
-Fill ALL fields with detailed observations from the image. No hallucination.`;
+Required JSON schema:
+{
+  "summary": "<Write 4-5 detailed sentences describing the overall scene, terrain, and key observations>",
+  "confidence": <number 70-95>,
+  "landCover": {
+    "vegetation": <percentage 0-100, estimate from visible greenery>,
+    "water": <percentage 0-100, estimate from visible water>,
+    "urban": <percentage 0-100, estimate from buildings/roads>,
+    "bareSoil": <percentage 0-100, estimate from exposed earth>,
+    "forest": <percentage 0-100, estimate from dense tree cover>,
+    "agriculture": <percentage 0-100, estimate from farmland/crops>
+  },
+  "vegetation": {
+    "health": "<Excellent|Good|Moderate|Poor|Critical based on color/density>",
+    "ndvi": <estimated NDVI value between -0.1 and 0.9>,
+    "density": <percentage 0-100>,
+    "types": ["<list 2-4 vegetation types you can identify, e.g. deciduous trees, grassland, crops>"]
+  },
+  "waterBodies": {
+    "totalArea": <percentage of image covered by water>,
+    "quality": "<Clean|Moderate|Polluted based on color/turbidity>",
+    "sources": ["<list water features: river, lake, pond, reservoir, canal>"]
+  },
+  "urban": {
+    "builtUpArea": <percentage of image with structures>,
+    "development": "<High|Medium|Low>",
+    "infrastructure": ["<list visible infrastructure: roads, buildings, bridges, power lines>"]
+  },
+  "environmental": {
+    "temperature": <estimated temperature in Celsius or null>,
+    "humidity": <estimated humidity percentage or null>,
+    "airQuality": "<Good|Moderate|Poor>",
+    "cloudCover": <estimated cloud cover percentage or null>
+  },
+  "features": [
+    {"type": "<anomaly|infrastructure|natural|land_use>", "description": "<2-3 sentences about this specific feature>", "severity": "<High|Medium|Low>"},
+    {"type": "<type>", "description": "<description>", "severity": "<severity>"},
+    {"type": "<type>", "description": "<description>", "severity": "<severity>"}
+  ],
+  "insights": [
+    "<Detailed actionable insight about land use patterns>",
+    "<Insight about vegetation health and distribution>",
+    "<Insight about water resources or hydrology>",
+    "<Insight about urban development or human activity>",
+    "<Insight about environmental conditions or risks>"
+  ],
+  "recommendations": [
+    "<Specific actionable recommendation for monitoring or management>",
+    "<Another recommendation based on observed features>",
+    "<Third recommendation for further analysis>"
+  ]
+}
+
+IMPORTANT: All landCover percentages MUST be non-zero estimates that sum to ~100. All arrays MUST have real content. Do NOT leave fields empty.`;
 
       parts.push({
         text: enhancedPrompt,

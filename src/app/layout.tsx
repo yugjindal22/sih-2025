@@ -11,13 +11,13 @@ import { PWARegister } from "@/components/pwa-register";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GeoVision Observatory - ISRO Earth Observation Platform",
+  title: "GeoVision Observatory - Earth Observation Platform",
   description:
-    "AI-Powered Multimodal Platform for ISRO Earth Observation Data Analysis - Smart India Hackathon 2025",
+    "AI-Powered Multimodal Platform for Earth Observation Data Analysis",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "GeoVision ISRO",
+    title: "GeoVision",
   },
   manifest: "/manifest.webmanifest",
 };

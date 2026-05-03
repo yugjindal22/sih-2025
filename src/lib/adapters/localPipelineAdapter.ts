@@ -25,78 +25,89 @@ export class LocalPipelineAdapter implements VisionAdapter {
         this.geminiClient = new GoogleGenerativeAI(apiKey);
     }
 
-    private async sanitizeWithGemini(rawText: string): Promise<string> {
-        if (!this.geminiClient) {
-            console.warn("Gemini client not initialized for sanitization");
-            return rawText;
+    private sanitizeResponse(raw: string): string {
+        if (!raw || typeof raw !== 'string') return raw;
+
+        // 1. Remove special tokens. 
+        // We replace with "" (empty string) instead of " " to avoid breaking words,
+        // but we normalize multiple spaces/newlines later.
+        let text = raw
+            .replace(/<\|im_end\|>/g, '')
+            .replace(/<\|im_start\|>[^\n]*/g, '')
+            .replace(/<\|[^|]*\|>/g, '')
+            .trim();
+
+        // 2. Repair common model hallucinations: Missing commas between fields.
+        // This looks for "property": "value" followed by "nextProperty" without a comma.
+        text = text.replace(/("(?:\\[^"]|[^"])*")\s*\n?\s*("(?:\\[^"]|[^"])*"\s*:)/g, '$1, $2');
+
+        // 3. Extract JSON objects
+        const jsonObjects = this.extractAllJsonObjects(text);
+
+        if (jsonObjects.length === 0) return text;
+
+        // 4. Handle the "Repetition" Quirk.
+        // If the objects are identical or highly similar, we just want the first one.
+        // If the model fragmented one object into pieces, we merge them.
+        const merged: Record<string, any> = {};
+        
+        // We reverse the array and then assign so that the FIRST occurrence 
+        // actually "wins" (as later assignments in a loop overwrite earlier ones).
+        const uniqueObjects = jsonObjects.filter((obj, index, self) => 
+            index === self.findIndex((t) => JSON.stringify(t) === JSON.stringify(obj))
+        );
+
+        for (const obj of uniqueObjects) {
+            Object.assign(merged, obj);
         }
 
-        // Check if JSON appears to be truncated (doesn't end with proper closing)
-        const trimmedText = rawText.trim();
-        const isTruncated = !trimmedText.endsWith('}') || 
-            (trimmedText.match(/{/g) || []).length > (trimmedText.match(/}/g) || []).length;
+        return JSON.stringify(merged, null, 2);
+    }
 
-        const sanitizationPrompt = isTruncated 
-            ? `You are a JSON repair and completion assistant. The following JSON response was truncated before completion. Your task is to:
-1. Complete the truncated JSON with realistic, detailed content that matches the style and context of what was already generated
-2. Ensure ALL required fields are present and filled with meaningful detailed content
-3. Return ONLY the complete, valid JSON
+    private extractAllJsonObjects(text: string): Record<string, any>[] {
+        const results: Record<string, any>[] = [];
+        let pos = 0;
 
-Required JSON structure (ensure ALL fields are present with detailed content):
-{
-  "summary": "4-5 sentence summary",
-  "confidence": number,
-  "landCover": {"vegetation": number, "water": number, "urban": number, "bareSoil": number, "forest": number, "agriculture": number},
-  "vegetation": {"health": string, "density": number, "types": array},
-  "waterBodies": {"totalArea": number, "quality": string, "sources": array},
-  "urban": {"builtUpArea": number, "development": string, "infrastructure": array},
-  "environmental": {"temperature": null, "humidity": null, "airQuality": string, "cloudCover": null},
-  "features": [{"type": string, "description": "detailed 2-3 sentences", "severity": string}, ...at least 3 features],
-  "insights": ["detailed insight 1", "detailed insight 2", ...at least 8-10 detailed insights],
-  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
-}
+        // Normalize potential "JSON-like" noise (like backticks)
+        const cleanText = text.replace(/```json|```/g, '');
 
-IMPORTANT: 
-- Complete any truncated descriptions with detailed content
-- Add missing fields based on context from existing content
-- Each insight should be 2-3 detailed sentences
-- Each feature description should be 2-3 detailed sentences
-- Provide at least 8-10 insights based on the image analysis context
+        while (pos < cleanText.length) {
+            const start = cleanText.indexOf('{', pos);
+            if (start === -1) break;
 
-Truncated JSON to complete:
-${rawText}
+            let depth = 0;
+            let inString = false;
+            let escape = false;
+            let end = -1;
 
-Return the COMPLETE JSON only:`
-            : `You are a JSON sanitizer. The following text contains a JSON response but may have extra tokens, markdown formatting, or other artifacts. Extract ONLY the valid JSON object and return it as clean, parseable JSON. Do not add any explanation, just return the clean JSON.
+            for (let i = start; i < cleanText.length; i++) {
+                const ch = cleanText[i];
+                if (escape) { escape = false; continue; }
+                if (ch === '\\' && inString) { escape = true; continue; }
+                if (ch === '"') { inString = !inString; continue; }
+                if (inString) continue;
 
-Raw text:
-${rawText}
-
-Return only the clean JSON:`;
-
-        try {
-            const model = this.geminiClient.getGenerativeModel({ model: "gemini-2.0-flash" });
-            const result = await model.generateContent(sanitizationPrompt);
-            const response = await result.response;
-            const sanitizedText = response.text();
-            
-            // Remove any markdown code blocks if present
-            let cleaned = sanitizedText.trim();
-            if (cleaned.startsWith('```json')) {
-                cleaned = cleaned.slice(7);
-            } else if (cleaned.startsWith('```')) {
-                cleaned = cleaned.slice(3);
+                if (ch === '{') depth++;
+                else if (ch === '}') {
+                    depth--;
+                    if (depth === 0) { end = i; break; }
+                }
             }
-            if (cleaned.endsWith('```')) {
-                cleaned = cleaned.slice(0, -3);
+
+            if (end === -1) break;
+
+            const candidate = cleanText.substring(start, end + 1);
+            try {
+                // Remove trailing commas before parsing (common in LLM output)
+                const fixedCandidate = candidate.replace(/,\s*([\]}])/g, '$1');
+                const parsed = JSON.parse(fixedCandidate);
+                results.push(parsed);
+            } catch (e) {
+                // If it fails, we move forward slightly to find the next potential '{'
             }
-            
-            console.log("Sanitized/Completed JSON from Gemini:", cleaned.substring(0, 500) + "...");
-            return cleaned.trim();
-        } catch (error) {
-            console.error("Gemini sanitization failed with detailed error:", error);
-            return rawText;
+            pos = end + 1;
         }
+        return results;
     }
 
     async analyzeImage(
@@ -137,16 +148,17 @@ Return only the clean JSON:`;
         const payload: any = {
             prompt,
             max_tokens: 8192,
-            temperature: 0.3
+            images: base64Images,
+            history: history || []
         };
 
-        // Only add images if there are any
-        if (base64Images.length > 0) {
-            payload.images = base64Images;
-        }
-
-        // Add conversation history for context (if provided)
-        payload.history = history || [];
+        console.log(`\n========================================`);
+        console.log(`🚀 OUTGOING REQUEST TO LOCAL OSS BACKEND`);
+        console.log(`URL: ${this.baseUrl}/chat`);
+        console.log(`Feature/Metadata:`, metadata);
+        console.log(`Prompt Preview (${prompt.length} chars):`, prompt.substring(0, 500) + (prompt.length > 500 ? "...\n[TRUNCATED]" : ""));
+        console.log(`Images: ${base64Images.length}`);
+        console.log(`========================================\n`);
 
         let response;
         try {
@@ -198,13 +210,13 @@ Return only the clean JSON:`;
         let finalText = responseText;
         
         if (skipSanitization) {
-            // Skip Gemini sanitization for raw responses (e.g., VQA evaluation)
+            // Skip sanitization for raw responses (e.g., VQA evaluation)
             console.log("Skipping sanitization - returning raw response");
             finalText = responseText.trim();
         } else {
-            // Sanitize with Gemini for structured analysis
-            console.log("Sanitizing response with Gemini...");
-            const sanitizedText = await this.sanitizeWithGemini(responseText);
+            // Sanitize using custom logic
+            console.log("Sanitizing response locally...");
+            const sanitizedText = this.sanitizeResponse(responseText);
             finalText = sanitizedText;
             try {
                 parsedResponse = JSON.parse(sanitizedText);
@@ -212,7 +224,7 @@ Return only the clean JSON:`;
                 finalText = sanitizedText;
             } catch (e) {
                 // Still failed, use as plain text
-                console.warn("JSON parse failed even after sanitization:", e);
+                console.warn("JSON parse failed even after local sanitization:", e);
                 parsedResponse = { summary: responseText };
                 // Return plain text if JSON parsing fails
                 finalText = responseText;

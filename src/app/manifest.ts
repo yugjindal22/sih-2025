@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "GeoVision Observatory - Earth Observation Platform",
     short_name: "GeoVision",
     description:
-      "GPT-OSS Multimodal Platform for ISRO Earth Observation Data - SIH 2025",
+      "GPT-OSS Multimodal Platform for Earth Observation Data Analysis",
     id: "/",
     start_url: "/",
     display: "standalone",

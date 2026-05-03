@@ -75,7 +75,7 @@ ${rawText}
 Return only the clean JSON:`;
 
         try {
-            const model = this.geminiClient.getGenerativeModel({ model: "gemini-2.0-flash" });
+            const model = this.geminiClient.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
             const result = await model.generateContent(sanitizationPrompt);
             const response = await result.response;
             const sanitizedText = response.text();
